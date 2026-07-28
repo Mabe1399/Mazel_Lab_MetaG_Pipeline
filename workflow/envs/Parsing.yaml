@@ -1,0 +1,12 @@
+name: Parsing_env
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.10
+  - pandas=2.0
+  - numpy=1.26
+  - biopython=1.83
+  - pyyaml=6.0
+  - matplotlib=3.8
+  - openpyxl=3.1

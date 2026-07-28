@@ -1,0 +1,31 @@
+# CONFIGURATION FILE FOR SNAKEMAKE — LOCAL EXECUTION
+# Default settings for running the pipeline on a single machine (workstation/laptop),
+# e.g. for a quick test on a handful of samples before submitting a full run to SLURM.
+# Adjust `cores` and `default-resources` to match your machine.
+
+# Total CPU cores Snakemake is allowed to use across all concurrently running jobs.
+# Individual rules with a higher explicit `threads:`/`cpus_per_task` requirement than
+# this will be capped down to fit.
+cores: 4
+
+# Default resources for jobs that don't set their own (most rules in this pipeline do)
+default-resources:
+  mem_mb: 4000        # Default memory per job in megabytes
+  runtime: 60         # Default time limit per job in minutes (not enforced locally, kept for consistency)
+  cpus_per_task: 1    # Default number of CPUs per job
+
+# Snakemake checkpointing settings
+restart-times: 0
+latency-wait: 10
+
+# Basic snakemake settings
+# by default, use conda environments if available
+use-conda: true
+# Optional shared cache dir for conda envs, so they aren't rebuilt per-project.
+# Left commented out by default: Snakemake then stores them under .snakemake/conda
+# in workflow/ (relative to wherever you invoke snakemake from), which works with
+# no setup. Uncomment and point at a real, writable path to share envs across runs.
+# conda-prefix: /path/to/your/conda/environments
+
+# by default, get extra benchmarking information
+benchmark-extended: true

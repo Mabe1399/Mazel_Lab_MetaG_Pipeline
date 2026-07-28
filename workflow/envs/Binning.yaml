@@ -1,0 +1,17 @@
+name: binning_env
+channels:
+ - bioconda
+ - conda-forge
+dependencies:
+  - metabat2
+  - checkm-genome
+  - maxbin2
+  - concoct=1.1.0
+  - numpy
+  - pandas
+  - scipy
+  - gsl>=2.6
+  - python=3.10
+  - das_tool>=1.1.6
+  - perl
+  - perl-threaded

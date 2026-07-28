@@ -1,0 +1,7 @@
+name: assembly_env
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - spades=4.0.0
+  - quast=5.2.0
