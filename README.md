@@ -1,3 +1,6 @@
+![](https://img.shields.io/static/v1?label=Snakemake&message=>8.6&color=blue)
+![GitHub last commit (branch)](https://img.shields.io/github/last-commit/mabe1399/Mazel_Lab_MetaG_Pipeline?branch=main)
+
 # Metagenomic Pipeline
 
 A [Snakemake](https://snakemake.readthedocs.io/) workflow for shotgun metagenomic sequencing data: raw
@@ -5,7 +8,6 @@ paired-end reads in, quality-controlled reads, a metagenome assembly, a set of q
 metagenome-assembled genomes (MAGs), and a taxonomically classified, dereplicated MAG catalogue out — with
 a single aggregated MultiQC report tying it all together.
 
-Built and maintained by the [Mazel Lab](https://www.unil.ch) (UNIL) for shotgun metagenomics projects.
 
 ## Workflow overview
 
@@ -73,8 +75,8 @@ FastQC + MultiQC sanity check on them before proceeding straight to assembly.
 ## Getting started
 
 ```bash
-git clone <this-repo-url>
-cd 01_Metagenomic_Pipeline
+git clone https://github.com/Mabe1399/Mazel_Lab_MetaG_Pipeline.git
+cd Mazel_Lab_MetaG_Pipeline
 ```
 
 Snakemake reads its own dependencies (conda envs listed per rule) lazily on first run via `--use-conda`, so

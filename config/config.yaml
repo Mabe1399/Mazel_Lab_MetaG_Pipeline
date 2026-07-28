@@ -1,12 +1,12 @@
-# CONFIGURATION FILE FOR GLOMUS CHINA PILOT PROJECT 
-# Last Updated: 2026-03-25
+# CONFIGURATION FILE METAGENOMIC PIPELINE 
+# Last Updated: 2026-07-28
 # Author: Matias Becker Burgos (Matias.BeckerBurgos@unil.ch)
 
 ######################################################
 # DESCRIPTION
 ######################################################
-# This configuration file contains paths and parameters for the GLOMUS
-# China pilot project. Adjust the paths below to match your
+# This configuration file contains paths and parameters for Mazel lab Metagenomic pipeline. 
+# Adjust the paths below to match your
 # project structure and computational environment.
 ######################################################
 # WORKING DIRECTORIES
@@ -15,24 +15,24 @@
 # Examples:
 #   working_dir: /home/username/projects/2025_SOMETALP_MetaG_Project
 
-working_dir: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/mbeckerb/2026_GLOMUS/2026_CHINA_pilot
+working_dir: 
 
 # path to a scratch directory for temporary files.
 # Examples:
 #   scratch_dir: /tmp/username
 
-scratch_dir: /scratch/mbeckerb
+scratch_dir: 
 
 # path to the raw data directory containing input FASTQ files.
 
-input_dir: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/mbeckerb/2026_GLOMUS/2026_CHINA_pilot/00_Data/02_Clean_Data
+input_dir: 
 
 # path to the log directory for storing log files.
 
-log_dir: /users/mbeckerb/Projects/2026_GLOMUS/2026_CHINA_pilot/logs
+log_dir: 
 
 # path to the benchmark directory for storing benchmark files.
-benchmark_dir: /users/mbeckerb/Projects/2026_GLOMUS/2026_CHINA_pilot/benchmark
+benchmark_dir: 
 
 #########################################################
 # SAMPLE DETECTION
@@ -52,10 +52,7 @@ sample_pattern: '^(Pl\d+_[A-Z]\d+)_.*$'
 #   exclude_pattern : regex matched against sample name; "" = disabled
 #                     e.g. '^.*(blank|BLANK|ctrl|NEG).*$'
 exclude_samples:
-- Glomus_China25_F_1
-- Glomus_China25_F_17
-- Glomus_China25_F_25
-- Glomus_China25_F_49
+- 
 
 exclude_pattern: ""   # set to a regex to exclude samples by name pattern
 
@@ -97,7 +94,7 @@ multiqc:
 
 # Trimmomatic parameters
 trimmomatic:
-  trimmomatic_adapters: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/trimmomatic/adapters/NexteraPE-PE.fa
+  trimmomatic_adapters: # path to stored adaptaters
   leading: 28
   trailing: 28
   minlen: 60
@@ -109,7 +106,7 @@ trimmomatic:
 # Kraken2 parameters (host filtering + taxonomic classification rules)
 # Database parameters
 kraken2_db:
-  DB_dir: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/kraken2_db
+  DB_dir: #path to Kraken Database
   # Ressources allocation for building the database
   threads: 32
   memory_mb: 500000
@@ -117,12 +114,7 @@ kraken2_db:
   disk_mb: 1000000
 # Formatted Reference genomes for host filtering in Kraken2
   refseq:
-  - /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Apodemus_sylvaticus/GCF_947179515.1_mApoSyl1.1_genomic_kraken.fna # Apodemus_sylvaticus
-  - /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Chionomys_nivalis/GCF_950005125.1_mChiNiv1.1_genomic_kraken.fna # Chionomys_nivalis
-  - /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Arvicola_amphibius/GCF_903992535.2_mArvAmp1.2_genomic_kraken.fna # Arvicola_amphibius
-  - /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Microtus_arvalis/GCA_044665705.1_MicArv1.0_genomic_kraken.fna # Microtus_arvalis
-  - /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Myodes_glareolus/GCF_902806735.1_Bank_vole1_10x_genomic_kraken.fna # Myodes_glareolus
-  - /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Sorex_araneus/GCF_027595985.1_mSorAra2.pri_genomic_kraken.fna # Sorex_araneus
+  - # Path to Kraken formatted Host reference genome fasta files
     
 
 # Run parameters
@@ -140,13 +132,7 @@ host_indexing:
   runtime_min: 240
   # Reference genomes for host filtering in Bowtie2
   Host_refs:
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Apodemus_sylvaticus/GCF_947179515.1_mApoSyl1.1_genomic.fna" # Apodemus_sylvaticus
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Chionomys_nivalis/GCF_950005125.1_mChiNiv1.1_genomic.fna" # Chionomys_nivalis
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Arvicola_amphibius/GCF_903992535.2_mArvAmp1.2_genomic.fna" # Arvicola_amphibius
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Microtus_arvalis/GCA_044665705.1_MicArv1.0_genomic.fna" # Microtus_arvalis
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Myodes_glareolus/GCF_902806735.1_Bank_vole1_10x_genomic.fna" # Myodes_glareolus
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Sorex_araneus/GCF_027595985.1_mSorAra2.pri_genomic.fna" # Sorex_araneus
-  - "/work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/Host_Database/Homo_sapiens/GCF_000001405.40_GRCh38.p14_genomic.fna" # Homo_sapiens
+  - # Path to Host reference genome for Host decontam (can be same as in Kraken2)
 
 # Host filtering parameters
 host_filtering:
@@ -155,7 +141,7 @@ host_filtering:
   memory_mb: 30000
   runtime_min: 600
   # Index for host filtering
-  index_path: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/bowtie2_index/SOMETALP_index 
+  index_path: # path to the index directory 
 
 ########## 02 Assembly.smk parameters ########
 
@@ -181,10 +167,7 @@ Contig_filter:
 ########### 03 Binning.smk parameters #############
 # SAMPLE excluded from the Binning
 exclude_samples:
-- Glomus_China25_F_1
-- Glomus_China25_F_17
-- Glomus_China25_F_25
-- Glomus_China25_F_49
+- # sample name
 
 ########### Backmapping ###################
 # Bowtie2 parameters
@@ -244,7 +227,7 @@ CheckM:
   memory_mb: 128000
   runtime_min: 240
   # set CheckM database path if needed
-  db: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/shared/Database/checkM_db
+  db: # Set CheckM database path
 
 # Bin quality filtering parameters
 Bin_filtering:
@@ -259,16 +242,16 @@ GTDB_Tk:
   memory_mb: 64000
   runtime_min: 1440
   # set GTDB-Tk database path if needed
-  db: /work/FAC/FBM/DMF/pengel/general_data/common_databases/gtdb/release226 # GTDB-Tk database path (temporary borrowed from engel lab)
+  db:  # GTDB-Tk database path (temporary borrowed from engel lab)
 
 # DATA VARIABLES AND COLORS FOR ITOL VISUALIZATIONS
 DATA_VARIABLES:
-  metadata_path: /work/FAC/FBM/DBC/fmazel/gut_evol_stg/mbeckerb/2026_GLOMUS/2026_CHINA_pilot/00_Data/00_Metadata/China_Extractions_Sept2025.xlsx # Path to metadata file
+  metadata_path:  # Path to metadata file
   col_host: "Host_species" # Column name in metadata file for host species
   split_criteria: "_DASTool_" # Character to split user_genome to extract Sample_ID
   col_sample_id: "Glomus_ID" # Column name in metadata file for sample IDs
 
-# Colors for host species in iTOL visualizations
+# Colors for host species in iTOL visualizations (can be modified for any species in dataset)
 host_colors:
   Apodemus chevrieri: "#DEB887"
   Apodemus draco: "#CDAA7D"
