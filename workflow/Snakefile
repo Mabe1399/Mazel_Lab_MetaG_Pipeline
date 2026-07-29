@@ -54,8 +54,14 @@ logger.info(f"Detected {len(SAMPLES)} samples: {', '.join(SAMPLES)}")
 BLANKS  = get_excluded_samples(SAMPLES)
 CONTIGS = [s for s in SAMPLES if s not in BLANKS]
 if BLANKS:
-    logger.info(f"Excluded samples (blanks/controls, {len(BLANKS)}): {', '.join(BLANKS)}")
-logger.info(f"Samples proceeding to binning ({len(CONTIGS)}): {', '.join(CONTIGS)}")
+    logger.info(
+    f"Excluded samples (blanks/controls, {len(BLANKS)}): "
+    f"{', '.join(str(x) for x in BLANKS if x is not None)}"
+)
+logger.info(
+    f"Samples proceeding to binning ({len(CONTIGS)}): "
+    f"{', '.join(str(x) for x in CONTIGS if x is not None)}"
+)
 
 ##################################################
 # STARTUP VALIDATION
