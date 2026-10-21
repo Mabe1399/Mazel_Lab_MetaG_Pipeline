@@ -87,7 +87,6 @@ def main():
     df = pd.DataFrame(records).sort_values(["module", "rule", "sample"])
     df.to_csv(args.output, sep="\t", index=False)
 
-    # Per-module totals
     module_totals = (
         df.groupby("module")[["wall_time_min", "max_memory_gb", "cpu_time_min"]]
         .agg({"wall_time_min": "sum", "max_memory_gb": "max", "cpu_time_min": "sum"})
@@ -95,7 +94,6 @@ def main():
         .sort_values("total_wall_min", ascending=False)
     )
 
-    # Top-N bottlenecks by wall time
     top_wall = (
         df.groupby(["module", "rule"])["wall_time_min"]
         .max()

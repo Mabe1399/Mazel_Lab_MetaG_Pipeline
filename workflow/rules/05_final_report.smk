@@ -125,12 +125,10 @@ rule final_multiqc:
         """
         set -euo pipefail
 
-        # Step 1: aggregate benchmark files into a summary table
         python {workflow.basedir}/scripts/aggregate_benchmarks.py \
             --bench-dir {params.bench_dir} \
             --output {params.bench_tsv} > {log} 2>&1
 
-        # Step 2: run pipeline-wide MultiQC report
         mkdir -p {params.outdir}
         multiqc \
             {params.search_dirs} \

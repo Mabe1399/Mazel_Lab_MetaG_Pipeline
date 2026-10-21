@@ -41,7 +41,6 @@ rule Metaspade_assembly:
         cpus_per_task = config["Metaspade_assembly"]["threads"]
     shell:
         """
-        # Create the tmp dir
         mkdir -p {params.outdir}
 
         spades.py --meta \
@@ -50,8 +49,7 @@ rule Metaspade_assembly:
             -o {params.outdir} \
             -m $(({resources.mem_mb}/1024)) \
             -t {threads} > {log} 2>&1
-        
-        # Move the file of interest to the right directory
+
         mv {params.outdir}/contigs.fasta {output.contigs}
         mv {params.outdir}/scaffolds.fasta {output.scaffolds}
         """

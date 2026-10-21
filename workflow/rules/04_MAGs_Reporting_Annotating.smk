@@ -153,11 +153,9 @@ rule convert_to_iTOL:
     localrule: True
     shell:
         """
-        # Still need the DB
         export GTDBTK_DATA_PATH={input.db}
         echo "GTDB_Tk DB is in: $GTDBTK_DATA_PATH" >> {log}
 
-        # Reformat the tree to be usable in iTOL
         gtdbtk convert_to_itol --input_tree {input.tree} --output_tree {output.iTOL} > {log} 2>&1
         """
 

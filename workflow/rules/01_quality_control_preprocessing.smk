@@ -284,9 +284,7 @@ rule build_Kraken2_db:
         f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/kraken2_db.tsv"
     shell:
         """
-        # Create the db folder
         mkdir -p $TMPDIR/kraken2_db
-        # Build the database
         kraken2-build --download-taxonomy --db $TMPDIR/kraken2_db
         kraken2-build --download-library bacteria --db $TMPDIR/kraken2_db
         kraken2-build --download-library human --db $TMPDIR/kraken2_db
@@ -297,7 +295,6 @@ rule build_Kraken2_db:
         done
         kraken2-build --build --threads {threads} --db $TMPDIR/kraken2_db
 
-        # Copy the database back to the shared folder
         mkdir -p {output.db}
         cp -r $TMPDIR/kraken2_db/* {output.db}/
         """

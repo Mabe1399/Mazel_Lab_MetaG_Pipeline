@@ -28,7 +28,6 @@ configfile: "../config/config.yaml"
 import os
 import sys
 
-## Directory Variables
 DATA_DIR    = config["input_dir"]
 SCRATCH_DIR = config["scratch_dir"]
 OUTPUT_DIR  = config["working_dir"]
@@ -77,7 +76,6 @@ logger.info(
 onstart:
     errors = []
 
-    # Required directories
     for key in ("input_dir", "working_dir", "scratch_dir"):
         if not os.path.isdir(config[key]):
             errors.append(f"[config] '{key}' not found: {config[key]}")
@@ -115,7 +113,6 @@ onstart:
                 + ". Expected pattern: {sample}_R1_cleaned.fastq.gz"
             )
 
-    # Log blank detection for verification
     if BLANKS:
         logger.info(f"Blank/excluded samples ({len(BLANKS)}): {', '.join(BLANKS)}")
         logger.info(f"Samples proceeding to binning: {len(CONTIGS)}")
@@ -189,8 +186,6 @@ onerror:
 ##################################################
 # RULES
 ##################################################
-# Include individual rule files for modularity
-
 if config["steps"].get("QC", True):
     include: "rules/01_quality_control_preprocessing.smk"
 else:

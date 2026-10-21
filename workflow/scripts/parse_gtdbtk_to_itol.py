@@ -8,7 +8,6 @@
 # Output file: leaf_genus_gtdb_to_iTOL_Host_strip_labels.txt
 
 
-# IMPORTS
 import pandas as pd
 import yaml
 from pathlib import Path
@@ -17,7 +16,6 @@ import matplotlib.colors as mcolors
 import colorsys
 import argparse
 
-# PARSE ARGUMENTS
 parser = argparse.ArgumentParser()
 parser.add_argument("--metadata", required=True)
 parser.add_argument("--summary", required=True)
@@ -25,16 +23,13 @@ parser.add_argument("--config", required=True)
 parser.add_argument("--outdir", required=True)
 args = parser.parse_args()
 
-# LOAD METADATA
 if args.metadata.endswith(".xlsx"):
     metadata = pd.read_excel(args.metadata)
 else:
     metadata = pd.read_csv(args.metadata, sep="\t")
 
-# LOAD GTDB-TK SUMMARY
 gtdb_summary = pd.read_csv(args.summary, sep="\t")
 
-# LOAD CONFIG COLORS
 with open(args.config) as f:
     cfg = yaml.safe_load(f)
 
@@ -46,22 +41,17 @@ HOST_COLORS = cfg.get("host_colors", {})
 
 #########################################################
 
-# DATA MERGE AND PROCESSING
-## Parse user_genome to match metadata
 gtdb_summary["Sample_ID"] = (
     gtdb_summary["user_genome"].str.split(SPLIT_CRITERIA).str[0]
     )
 
-## Merge metadata with summary
 merged = pd.merge(
-    gtdb_summary, 
-    metadata, 
-    right_on=SAMPLE_ID_COL, 
-    left_on="Sample_ID", 
+    gtdb_summary,
+    metadata,
+    right_on=SAMPLE_ID_COL,
+    left_on="Sample_ID",
     how="left"
     )
-
-# TAXONOMY PARSING
 
 def parse_tax(t):
     tax_levels = t.split(";")
@@ -72,9 +62,7 @@ def parse_tax(t):
             tax[key] = value
     return tax
 
-## Create a taxonomic table
 tax_table = merged["classification"].apply(parse_tax).apply(pd.Series)
-## set empty strings to NaN
 tax_table = tax_table.replace("", pd.NA)
 
 ## Leaf Genus (fall back to family if genus is NaN)
@@ -83,20 +71,15 @@ merged["leaf_genus"] = merged["leaf_genus"].fillna(
     "f__" + tax_table["f"].fillna("Unclassified").astype(str)
     )
 
-## LEAF PHYLUM
 merged["leaf_phylum"] = "p__" + tax_table["p"].astype(str)
 
-# PRECOUMPUTED LOOKUPS
 genome_to_genus = dict(zip(merged["user_genome"], merged["leaf_genus"]))
 genome_to_phylum = dict(zip(merged["user_genome"], merged["leaf_phylum"]))
 genome_to_host = dict(zip(merged["user_genome"], merged[HOST_COLUMN_NAME]))
 
-# COUNT NUMBER OF GENOMES PER LEAF
 genus_counts = merged["leaf_genus"].value_counts()
 phylum_counts = merged["leaf_phylum"].value_counts()
 host_counts = merged[HOST_COLUMN_NAME].value_counts()
-
-# LABEL CREATION
 
 leaf_id_to_Genus_label = {}
 for genome, genus in genome_to_genus.items():
@@ -124,7 +107,6 @@ for genome, host in genome_to_host.items():
     count = host_counts.get(host, 0)
     leaf_id_to_Host_label[genome] = f"{host_clean} (n={count})"
 
-# COLOR GENERATION
 # --- Phylum base colors ---
 phyla = sorted(merged["leaf_phylum"].unique())
 tab20 = plt.cm.tab20.colors
@@ -206,7 +188,6 @@ def write_itol_strip(outfile, label, branch_color, data_dict, add_legend=True):
             legend = {}
 
             for _, (text, color) in data_dict.items():
-                # Remove abundance from legend label
                 clean_label = text.split(" (n=")[0]
                 legend[clean_label] = color
 
@@ -225,7 +206,6 @@ def write_itol_strip(outfile, label, branch_color, data_dict, add_legend=True):
             f.write(f"{leaf_id}\t{color}\t{text}\n")
 
 
-# Phylum strip (WITH legend)
 write_itol_strip(
     Path(args.outdir) / "leaf_phylum_gtdb_to_iTOL_strip_labels.txt",
     "Leaf_Phylum",
@@ -234,7 +214,6 @@ write_itol_strip(
     add_legend=True
 )
 
-# Genus strip (NO legend)
 write_itol_strip(
     Path(args.outdir) / "leaf_genus_gtdb_to_iTOL_strip_labels.txt",
     "Leaf_Genus",
@@ -243,7 +222,6 @@ write_itol_strip(
     add_legend=False
 )
 
-# Host strip (WITH legend)
 write_itol_strip(
     Path(args.outdir) / "leaf_host_gtdb_to_iTOL_strip_labels.txt",
     "Host_Species",

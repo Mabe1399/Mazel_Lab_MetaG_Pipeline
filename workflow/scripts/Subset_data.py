@@ -4,17 +4,14 @@
 # Usage: python Subset_data.py -i input.fastq.gz -o output.fastq.gz -n 1000000
 
 
-# Imports
 import gzip
 import random
 import argparse
 
-# Function to subset FASTQ files
 def subset_fastq(fastq1, fastq2, output1, output2, num_reads, seed=None):
     if seed is not None:
         random.seed(seed)
-    
-    # count total reads
+
     print("Counting total reads in input files...")
     with gzip.open(fastq1, 'rt') as f1:
         total_reads = sum(1 for _ in f1) // 4
@@ -27,7 +24,6 @@ def subset_fastq(fastq1, fastq2, output1, output2, num_reads, seed=None):
     keep_indices = set(random.sample(range(total_reads), num_reads))
     print(f"Selected {num_reads} reads to keep.")
 
-    # Write subsetted reads to output files
     kept_reads =0
     with gzip.open(fastq1, 'rt') as f1, gzip.open(fastq2, 'rt') as f2, \
             gzip.open(output1, 'wt') as out1, gzip.open(output2, 'wt') as out2:
@@ -42,7 +38,6 @@ def subset_fastq(fastq1, fastq2, output1, output2, num_reads, seed=None):
                     kept_reads += 1
     print(f"Wrote {kept_reads} reads to output files.")
 
-# Main function to parse arguments and call subset function
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Subset paired FASTQ files based on number of reads.")
     parser.add_argument("-i1", "--input1", required=True, help="Input FASTQ R1 (.gz).")
