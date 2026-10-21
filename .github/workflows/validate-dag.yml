@@ -1,0 +1,53 @@
+name: Validate Snakemake DAG
+
+# Dry-runs the pipeline against test_data/ (synthetic smoke-test fixture, see
+# test_data/README.md) for both binning branches, to catch rule/config wiring
+# breakage before it reaches real pilot data. Does NOT build the bioinformatics
+# tool conda environments or execute any real rule — snakemake -n only needs
+# Snakemake itself to validate that the DAG, config, and scripts' CLI wiring
+# are internally consistent.
+#
+# Known gap: test_data/reads/ are pre-"cleaned" reads (steps.QC: false), so
+# this does not exercise the steps.QC: true (raw multi-lane -> host-filtering)
+# branch of 01_quality_control_preprocessing.smk.
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  dag-dry-run:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        alternative_binning: [false, true]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          channels: conda-forge,bioconda
+          channel-priority: strict
+          activate-environment: snakemake-ci
+
+      - name: Install Snakemake
+        shell: bash -el {0}
+        run: mamba install -n snakemake-ci -y "snakemake>=8"
+
+      - name: Prepare run scaffolding (gitignored outputs + dummy GTDB-Tk db)
+        run: |
+          mkdir -p test_data/_run/{output,scratch,logs,benchmarks,dummy_gtdb_db}
+
+      - name: Dry-run DAG (alternative_binning=${{ matrix.alternative_binning }})
+        shell: bash -el {0}
+        run: |
+          cd workflow
+          snakemake -n --configfile ../test_data/config.test.yaml \
+            --config 'GTDB_Tk={"db": "../test_data/_run/dummy_gtdb_db"}' \
+                     'steps={"alternative_binning": ${{ matrix.alternative_binning }}}'
