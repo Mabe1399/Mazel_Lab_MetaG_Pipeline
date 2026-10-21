@@ -1,0 +1,187 @@
+# TEST CONFIGURATION — small synthetic 2-sample smoke test for cluster validation.
+#
+# Exercises the "core path": pre-cleaned reads -> assembly -> binning -> CheckM2 ->
+# GTDB-Tk/dRep -> final MultiQC report. Host-filtering/Kraken2 are skipped (steps.QC:
+# false) since test_data/reads/ already ships "_cleaned" reads — there's no synthetic
+# host genome or Kraken2 database here (see test_data/README.md for why).
+#
+# All paths below are relative to workflow/ (same convention as config/config.yaml's
+# own configfile: path), so this works unmodified on any clone, including a fresh
+# checkout on the cluster — only the two database paths marked below need filling in
+# with real per-cluster locations (CheckM2 and GTDB-Tk databases are multi-GB and
+# cluster-specific; not something that can be committed to the repo).
+#
+# Run from workflow/:
+#   snakemake -n --configfile ../test_data/config.test.yaml          # dry run first
+#   snakemake --use-conda --profile ../profile/slurm --configfile ../test_data/config.test.yaml
+
+working_dir: ../test_data/_run/output
+scratch_dir: ../test_data/_run/scratch
+input_dir: ../test_data/reads
+log_dir: ../test_data/_run/logs
+benchmark_dir: ../test_data/_run/benchmarks
+
+#########################################################
+# SAMPLE DETECTION
+#########################################################
+sample_pattern: '^(.+?)_R[12].*\.fastq\.gz$'
+
+#########################################################
+# BLANK / CONTROL SAMPLE EXCLUSION
+#########################################################
+exclude_samples: []
+
+exclude_pattern: ""
+
+#########################################################
+# INCLUDE/EXCLUDE STEPS
+#########################################################
+steps:
+  QC: false                         # reads in test_data/reads/ are already "_cleaned"
+  concatenate_lanes: true           # unused when QC: false
+  taxonomic_profiling: false
+  alternative_binning: false        # consensus binning (MetaBAT2+MaxBin2+CONCOCT+DAS_Tool)
+  MAGs_Reporting_step: true         # GTDB-Tk + dRep + MAG summary table
+  final_report: true                # also exercises the checkm2 MultiQC module
+
+#########################################################
+# SOFTWARE PARAMETERS (scaled down for a quick smoke test)
+#########################################################
+
+Concatenate:
+  threads: 1
+  runtime_min: 5
+
+fastqc:
+  threads: 1
+  memory_mb: 1000
+  runtime_min: 15
+
+multiqc:
+  threads: 1
+  memory_mb: 600
+  runtime_min: 10
+
+trimmomatic:
+  trimmomatic_adapters:
+  leading: 28
+  trailing: 28
+  minlen: 60
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+
+kraken2_db:
+  DB_dir:
+  threads: 1
+  memory_mb: 4000
+  runtime_min: 15
+  disk_mb: 10000
+  refseq:
+  -
+
+kraken2_run:
+  threads: 1
+  memory_mb: 4000
+  runtime_min: 15
+
+host_indexing:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+  Host_refs:
+  -
+
+host_filtering:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+  index_path:
+
+Metaspade_assembly:
+  threads: 2
+  memory_mb: 4000
+  runtime_min: 30
+
+MetaQuast:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+
+Contig_filter:
+  length_threshold: 1500
+  coverage_threshold: 1
+
+Contig_indexing:
+  threads: 1
+  memory_mb: 1000
+  runtime_min: 10
+
+Contig_Backmapping:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+
+MetaBat2:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+  min_contig_length: 1500
+
+MaxBin2:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+  min_contig_length: 1500
+
+CONCOCT:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+  min_contig_length: 1500
+  chunk_size: 10000
+  overlap_size: 0
+  coverage_runtime: 10
+
+DASTool:
+  threads: 1
+  memory_mb: 2000
+  runtime_min: 15
+  search_engine: diamond
+
+# CheckM2 — fill in db: with a real cluster CheckM2 DIAMOND database path
+# (download once per cluster with: checkm2 database --download --path <dir>)
+CheckM:
+  threads: 2
+  memory_mb: 4000
+  runtime_min: 30
+  db: # <-- set CheckM2 database path here
+
+Bin_filtering:
+  completeness: 50     # lowered from production's 90 — synthetic contigs are small
+  contamination: 10    # and won't score as cleanly as a real assembled genome
+
+# GTDB-Tk — fill in db: with a real cluster GTDB-Tk reference database path
+GTDB_Tk:
+  threads: 2
+  memory_mb: 8000
+  runtime_min: 30
+  db: # <-- set GTDB-Tk database path here
+
+DATA_VARIABLES:
+  metadata_path: ../test_data/test_metadata.tsv
+  col_host: "Group"
+  split_criteria: "_DASTool_"
+  col_sample_id: "Sample_ID"
+
+host_colors:
+  groupA: "#4C72B0"
+  groupB: "#DD8452"
+
+dRep:
+  threads: 2
+  memory_mb: 4000
+  runtime_min: 30
+  completeness_threshold: 50
+  contamination_threshold: 10
+  secondary_clustering_ANI: 0.95
