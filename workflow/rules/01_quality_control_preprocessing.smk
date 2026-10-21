@@ -69,8 +69,13 @@ if _CONCATENATE_LANES:
             R1s=lambda wc: sorted(glob.glob(f"{DATA_DIR}/{wc.sample}_L*_R1*.fastq.gz")),
             R2s=lambda wc: sorted(glob.glob(f"{DATA_DIR}/{wc.sample}_L*_R2*.fastq.gz")),
         output:
-            R1=temp(f"{SCRATCH_DIR}/Concatenated/{{sample}}_R1_concat.fastq.gz"),
-            R2=temp(f"{SCRATCH_DIR}/Concatenated/{{sample}}_R2_concat.fastq.gz"),
+            # Not temp(): regenerating this after a later invocation finds it
+            # missing bumps its mtime, which — since Raw_Trimming/host_filtering
+            # read it (directly or transitively) — can cascade into marking
+            # already-complete host_filtering/assembly as out of date (assembly
+            # is ~23h/sample). See docs/log_Bug_fix.txt.
+            R1=f"{SCRATCH_DIR}/Concatenated/{{sample}}_R1_concat.fastq.gz",
+            R2=f"{SCRATCH_DIR}/Concatenated/{{sample}}_R2_concat.fastq.gz",
         threads: config["Concatenate"]["threads"]
         log:
             f"{LOG_DIR}/01_QC_Preprocessing/lane_concatenation/{{sample}}_concat.log"
@@ -92,8 +97,9 @@ else:
             R1=lambda wc: _find_raw_read(wc, 1),
             R2=lambda wc: _find_raw_read(wc, 2),
         output:
-            R1=temp(f"{SCRATCH_DIR}/Concatenated/{{sample}}_R1_concat.fastq.gz"),
-            R2=temp(f"{SCRATCH_DIR}/Concatenated/{{sample}}_R2_concat.fastq.gz"),
+            # Not temp() — see concat_lanes above for why.
+            R1=f"{SCRATCH_DIR}/Concatenated/{{sample}}_R1_concat.fastq.gz",
+            R2=f"{SCRATCH_DIR}/Concatenated/{{sample}}_R2_concat.fastq.gz",
         localrule: True
         log:
             f"{LOG_DIR}/01_QC_Preprocessing/lane_concatenation/{{sample}}_link.log"
@@ -166,11 +172,16 @@ rule before_multiqc:
 
 rule Raw_Trimming:
     input:
-        R1=f"{SCRATCH_DIR}/Concatenated/{{sample}}_R1_concat.fastq.gz",
-        R2=f"{SCRATCH_DIR}/Concatenated/{{sample}}_R2_concat.fastq.gz",
+        # ancient(): defense-in-depth so a merely-re-touched (not content-changed)
+        # Concatenated/ file never spuriously triggers a rerun here — see
+        # docs/log_Bug_fix.txt for why this link matters.
+        R1=ancient(f"{SCRATCH_DIR}/Concatenated/{{sample}}_R1_concat.fastq.gz"),
+        R2=ancient(f"{SCRATCH_DIR}/Concatenated/{{sample}}_R2_concat.fastq.gz"),
     output:
-        R1_paired=temp(f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_paired.fastq.gz"),
-        R2_paired=temp(f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_paired.fastq.gz"),
+        # R1/R2_paired not temp() — see concat_lanes above for why (same cascade risk,
+        # one step further down the chain, directly upstream of host_filtering).
+        R1_paired=f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_paired.fastq.gz",
+        R2_paired=f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_paired.fastq.gz",
         R1_unpaired=temp(f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_unpaired.fastq.gz"),
         R2_unpaired=temp(f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_unpaired.fastq.gz")
     threads: config["trimmomatic"]["threads"]
@@ -359,22 +370,22 @@ rule host_indexing:
         cpus_per_task = config["host_indexing"]["threads"]
     shell:
         """
-        # Concatenate the Host genomes
         cat {params.refs_seq} > $TMPDIR/hosts_combined.fa
 
-        # Build the index
         mkdir -p $TMPDIR/hosts_index
         bowtie2-build --threads {threads} $TMPDIR/hosts_combined.fa $TMPDIR/hosts_index/host_index > {log} 2>&1
 
-        # Copy the index to permanent storage
         mkdir -p {params.index_dir}
         cp -r $TMPDIR/hosts_index/host_index.* {params.index_dir}/
         """
 
 rule host_filtering:
     input:
-        R1 = f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_paired.fastq.gz",
-        R2 = f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_paired.fastq.gz",
+        # ancient(): defense-in-depth against a spuriously fresher Trimmed/ mtime
+        # cascading into a rerun of this rule and, transitively, assembly
+        # (~23h/sample) — see docs/log_Bug_fix.txt.
+        R1 = ancient(f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_paired.fastq.gz"),
+        R2 = ancient(f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_paired.fastq.gz"),
         index = _HOST_INDEX_FILES
     output:
         R1_clean = f"{OUTPUT_DIR}/00_Data/02_Clean_Data/{{sample}}_R1_cleaned.fastq.gz",

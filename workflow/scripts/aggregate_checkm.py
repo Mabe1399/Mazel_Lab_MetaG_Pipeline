@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import argparse
 import pandas as pd
 
@@ -35,17 +36,14 @@ args = parser.parse_args()
 # and contamination < 10%). Then, it return a combined stat table for all MAGs
 # and one for the good MAGs. Also copies all "good" MAGs in a single directory.
 
-#inputs
 stats_list=args.input_stats
 
-#outputs
-out_full_stats=args.full_stats # checkm stats of all MAGs
-out_filtered_stats=args.filt_stats # checkm stats of "good" MAGs
-chosen_mags_dir=args.mags # directory where all good MAGs will be stored
+out_full_stats=args.full_stats
+out_filtered_stats=args.filt_stats
+chosen_mags_dir=args.mags
 
 
 def create_df_list(list):
-# opens dataframes in file list and creates list of df
     df_list=[]
     for file in list:
         sam=file.split("/")[-1]

@@ -165,9 +165,8 @@ Contig_filter:
   coverage_threshold: 1
 
 ########### 03 Binning.smk parameters #############
-# SAMPLE excluded from the Binning
-exclude_samples:
-- # sample name
+# Sample exclusion from binning uses exclude_samples: / exclude_pattern: above
+# (see BLANK / CONTROL SAMPLE EXCLUSION section).
 
 ########### Backmapping ###################
 # Bowtie2 parameters

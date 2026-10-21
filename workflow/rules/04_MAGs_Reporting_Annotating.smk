@@ -8,10 +8,11 @@
 # MAGs Reporting and annotating rules usable in many different pipelines to classify MAGs created.
 #
 # MODULE INTERFACE
-#   INPUT:       {OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins/ (from 03_binning.smk)
+#   INPUT:       HIGHQC_BINS_DIR (from 03_binning.smk or 03b_Binning_MetaBAT2.smk,
+#                depending on the alternative_binning steps flag — set once in Snakefile)
 #   OUTPUT:      {OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv
 #                {OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/reference_SGBs/  (used by 05a)
-#   REQUIRES:    03_binning.smk (HighQC_Bins/ directory)
+#   REQUIRES:    03_binning.smk or 03b_Binning_MetaBAT2.smk (HIGHQC_BINS_DIR directory)
 #   STEPS KEY:   MAGs_Reporting_step: true
 #   USES:        CONTIGS (blank samples excluded — same set as binning)
 #   NOTE:        Module 05a (InStrain) depends on this module's dRep outputs.
@@ -33,7 +34,7 @@
 rule gtdb_classify:
     input:
         db= config["GTDB_Tk"]["db"],
-        filtered_mags= f"{OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins/"
+        filtered_mags= HIGHQC_BINS_DIR
     output:
         # classify_wf's own output tree (identify/align/classify + pplacer scratch)
         # is large and only two files inside it are ever needed again — those are
@@ -210,7 +211,7 @@ rule parse_dRep_genomeInfo:
 
 rule run_dRep:
     input:
-        mag = f"{OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins/",
+        mag = HIGHQC_BINS_DIR,
         GenomeInfo = f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/GenomeInfo_dRep.csv"
     output:
         drep_out= directory(f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/reference_SGBs/")

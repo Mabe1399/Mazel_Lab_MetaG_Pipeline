@@ -59,7 +59,17 @@ def get_excluded_samples(all_samples):
       exclude_samples : list of explicit sample names
       exclude_pattern : regex; empty string = disabled
     """
-    excluded = set(config.get("exclude_samples", []))
+    raw_excluded = config.get("exclude_samples", []) or []
+    bad = [x for x in raw_excluded if not isinstance(x, str) or not x.strip()]
+    if bad:
+        raise ValueError(
+            f"config['exclude_samples'] contains invalid entries: {bad!r}. "
+            "Each entry must be a non-empty sample name string. This usually means "
+            "a stray YAML '-' under an otherwise-empty exclude_samples: list "
+            "(e.g. 'exclude_samples:\\n- ' parses to [None], not []) — "
+            "use 'exclude_samples: []' to exclude nothing."
+        )
+    excluded = set(raw_excluded)
     pattern = config.get("exclude_pattern", "")
     if pattern:
         excluded |= {s for s in all_samples if re.search(pattern, s)}

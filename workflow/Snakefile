@@ -43,14 +43,21 @@ CLEAN_DATA_DIR = (
     else DATA_DIR
 )
 
-## Common functions (detect_samples, get_excluded_samples)
+## High-quality bins directory — produced by whichever binning branch ran
+## (03b standalone MetaBAT2, or 03 MetaBAT2+MaxBin2+CONCOCT -> DAS_Tool).
+## Downstream rules (module 04) read from this, never a hardcoded literal,
+## so they're agnostic to which branch produced it.
+HIGHQC_BINS_DIR = (
+    f"{OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins_MetaBAT2/"
+    if config["steps"].get("alternative_binning", True)
+    else f"{OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins/"
+)
+
 include: "rules/00_common.smk"
 
-## Sample detection
 SAMPLES = detect_samples(DATA_DIR)
 logger.info(f"Detected {len(SAMPLES)} samples: {', '.join(SAMPLES)}")
 
-## Blank / control exclusion
 BLANKS  = get_excluded_samples(SAMPLES)
 CONTIGS = [s for s in SAMPLES if s not in BLANKS]
 if BLANKS:
@@ -86,11 +93,9 @@ onstart:
         if gtdb_db and not os.path.isdir(gtdb_db):
             errors.append(f"[config] GTDB_Tk.db not found: {gtdb_db}")
 
-    # Sample detection
     if not SAMPLES:
         errors.append(f"[samples] No samples detected in input_dir: {config['input_dir']}")
 
-    # Lane concatenation mode
     if config["steps"].get("QC", True):
         concat = config["steps"].get("concatenate_lanes", True)
         mode = "multi-lane (cat)" if concat else "pre-concatenated (symlink)"

@@ -16,7 +16,8 @@
 #   USES:        CONTIGS (blank samples excluded)
 #   NOTE:        Writes to HighQC_Bins_MetaBAT2/ (NOT HighQC_Bins/) to avoid
 #                conflicting with 03_binning.smk output. Module 04 reads from
-#                HighQC_Bins/ by default — update config if using 03b as sole binner.
+#                HIGHQC_BINS_DIR (set once in Snakefile from this same
+#                alternative_binning flag), so no separate config update is needed.
 
 # Steps included:
 # 01: Contig indexing
