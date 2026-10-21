@@ -53,13 +53,13 @@ def get_multiqc_inputs(wildcards):
         sample=CONTIGS,
     )
 
-    # CheckM is always part of the binning pipeline
+    # CheckM2 is always part of the binning pipeline
     inputs["checkm"] = f"{OUTPUT_DIR}/02_Results/03_Binning/CheckM_QC/all_MAGs_stats.tsv"
-    # Per-sample qa_summary.tsv are temp()'d once Bin_filtering_QC_summary consumes
+    # Per-sample quality_report.tsv are temp()'d once Bin_filtering_QC_summary consumes
     # them; anchoring here too defers that cleanup until this rule has also run,
-    # since MultiQC's "checkm" module parses them directly from 01_Analysis/.
+    # since MultiQC's "checkm2" module parses them directly from 01_Analysis/.
     inputs["checkm_raw"] = expand(
-        f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{{contig}}_checkm_QC/qa_summary.tsv",
+        f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{{contig}}_checkm_QC/quality_report.tsv",
         contig=CONTIGS,
     )
 

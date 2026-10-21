@@ -216,7 +216,6 @@ rule run_dRep:
     conda:
         "../envs/Reporting.yaml"
     params:
-        checkm_db= config["CheckM"]["db"],
         completeness= config["dRep"]["completeness_threshold"],
         contamination= config["dRep"]["contamination_threshold"],
         ANI= config["dRep"]["secondary_clustering_ANI"]
@@ -231,8 +230,6 @@ rule run_dRep:
         runtime = config["dRep"]["runtime_min"]
     shell:
         """
-        export CheckM_DATA_PATH={params.checkm_db}
-
         dRep dereplicate {output.drep_out} \
             -g {input.mag}/* \
             --genomeInfo {input.GenomeInfo} \

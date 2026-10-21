@@ -220,13 +220,14 @@ DASTool:
 
 ############ QC parameters #############
 
-# CheckM parameters
+# CheckM2 parameters
 CheckM:
   threads: 4
   memory_mb: 128000
   runtime_min: 240
-  # set CheckM database path if needed
-  db: # Set CheckM database path
+  # CheckM2 DIAMOND database path — download once with:
+  # checkm2 database --download --path <dir>
+  db: # Set CheckM2 database path
 
 # Bin quality filtering parameters
 Bin_filtering:

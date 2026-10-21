@@ -84,7 +84,7 @@ filtred_df.to_csv(out_filtered_stats, sep="\t", index=False)
 
 bins_sam=args.bins
 all_filtered_mags=[]
-gd_mags=list(filtred_df["Bin Id"])
+gd_mags=list(filtred_df["Name"])
 
 for dir in bins_sam:
     print("looking for good MAGs in " + dir)

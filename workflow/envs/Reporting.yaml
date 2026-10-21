@@ -5,5 +5,4 @@ channels:
 dependencies:
 - gtdbtk=2.6.1
 - drep=3.4.0
-- checkm-genome
 - pandas=1.5.3

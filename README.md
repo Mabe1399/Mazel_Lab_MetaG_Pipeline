@@ -19,7 +19,7 @@ The pipeline runs in four stages, each its own Snakemake module under `workflow/
 |---|---|---|
 | **01 · QC & preprocessing** | Concatenate (or symlink) lanes → FastQC → adapter/quality trimming → host-genome filtering → FastQC again. Optionally also runs Kraken2 taxonomic profiling on the trimmed reads. | FastQC, Trimmomatic, Bowtie2, Kraken2 |
 | **02 · Assembly** | Metagenome assembly, contig QC, and length/coverage filtering of contigs before binning. | metaSPAdes, MetaQuast |
-| **03 · Binning** | Backmap every sample's reads against every sample's contigs ("all vs. all"), then bin contigs into draft genomes and quality-check them. Two selectable strategies (see below). | MetaBAT2, MaxBin2, CONCOCT, DAS_Tool, CheckM |
+| **03 · Binning** | Backmap every sample's reads against every sample's contigs ("all vs. all"), then bin contigs into draft genomes and quality-check them. Two selectable strategies (see below). | MetaBAT2, MaxBin2, CONCOCT, DAS_Tool, CheckM2 |
 | **04 · Reporting** | Taxonomically classify each high-quality bin, dereplicate the catalogue into representative genomes, and produce the final per-MAG summary table. | GTDB-Tk, dRep |
 
 A final, optional stage aggregates every stage's QC metrics (plus per-rule runtime/memory benchmarks) into
@@ -34,7 +34,7 @@ The `Alternative Binning?` branch in the diagram is a config switch, not a manua
 - **Standalone MetaBAT2** (`alternative_binning: true`) — skips MaxBin2/CONCOCT/DAS_Tool entirely and
   quality-filters MetaBAT2's bins directly. Faster, but no cross-tool consensus.
 
-Both feed the same downstream QC filtering step (CheckM completeness/contamination thresholds), just into
+Both feed the same downstream QC filtering step (CheckM2 completeness/contamination thresholds), just into
 different output directories (`HighQC_Bins/` vs. `HighQC_Bins_MetaBAT2/` — see [Outputs](#outputs)).
 
 ### Two ways to reach "clean data"
@@ -66,7 +66,7 @@ FastQC + MultiQC sanity check on them before proceeding straight to assembly.
   - A [Kraken2](https://github.com/DerrickWood/kraken2) database (host filtering + optional taxonomic
     profiling)
   - Host reference genome(s) in FASTA format, for building the Bowtie2 host-filtering index
-  - A [CheckM](https://github.com/Ecogenomics/CheckM) reference database
+  - A [CheckM2](https://github.com/chklovski/CheckM2) DIAMOND reference database (`checkm2 database --download`)
   - A [GTDB-Tk](https://github.com/Ecogenomics/GTDBTk) reference database (MAG taxonomic classification)
 - Access to a SLURM cluster is recommended for real datasets — assembly, binning, and GTDB-Tk classification
   are memory- and time-intensive. A `profile/slurm/` Snakemake profile is included; see
@@ -171,7 +171,7 @@ Everything is written under `working_dir`, split into two top-level trees:
 - **`02_Results/`** — the outputs you actually want to keep:
   - `01_QC_Preprocessing/` — FastQC/MultiQC before-and-after reports, combined Kraken2 report
   - `02_Assembly/` — filtered contigs per sample, MetaQuast assembly-QC report
-  - `03_Binning/` — `all_MAGs_stats.tsv` / `filtered_MAGs_stats.tsv` (CheckM completeness/contamination for
+  - `03_Binning/` — `all_MAGs_stats.tsv` / `filtered_MAGs_stats.tsv` (CheckM2 completeness/contamination for
     every bin) and the final quality-filtered bin FASTAs (`HighQC_Bins/` or `HighQC_Bins_MetaBAT2/`,
     depending on which binning strategy is enabled)
   - `04_MAGs_Reporting_Annotating/` — `MAG_Representative_info_parsed.tsv` (the final per-MAG summary:

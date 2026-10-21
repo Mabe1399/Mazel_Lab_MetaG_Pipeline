@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 checkm_summary = pd.read_csv(args.CheckM_summary, sep="\t")
 
-genome_info = checkm_summary[["Bin Id", "Completeness", "Contamination"]]
+genome_info = checkm_summary[["Name", "Completeness", "Contamination"]]
 genome_info.columns = ["genome", "completeness", "contamination"]
 
 genome_info["genome"] = genome_info["genome"].apply(lambda x: x + ".fa")

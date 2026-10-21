@@ -7,8 +7,8 @@
 # --output output_file.tsv
 
 # Output file: MAG_representative_info_parsed.tsv
-# This script parses the CheckM summary, GTDB-Tk summary and dRep directory to extract information about the representative MAGs and others, including their genome ID, completeness, contamination, taxonomy and dRep cluster.
-# The output file will contain the following columns: MAG ID, sample, completeness, contamination, Genome size (bp), N50, # markers, dRep_cluster, taxonomy. 
+# This script parses the CheckM2 summary, GTDB-Tk summary and dRep directory to extract information about the representative MAGs and others, including their genome ID, completeness, contamination, taxonomy and dRep cluster.
+# The output file will contain the following columns: MAG ID, completeness, contamination, Completeness_Model_Used, Domain, Phylum, Class, Order, Family, Genus, Species, dRep_Score, dRep_cluster, closest_cluster_member, furthest_cluster_member.
 
 import pandas as pd
 import argparse
@@ -25,8 +25,8 @@ checkm_summary = pd.read_csv(args.CheckM_summary, sep="\t")
 
 gtdbtk_summary = pd.read_csv(args.GTDB_Tk_summary, sep="\t", na_values="N/A")
 
-genome_info = checkm_summary[["Bin Id", "Completeness", "Contamination", "# markers" ]]
-genome_info.columns = ["MAG ID", "completeness", "contamination", "# markers"]
+genome_info = checkm_summary[["Name", "Completeness", "Contamination", "Completeness_Model_Used" ]]
+genome_info.columns = ["MAG ID", "completeness", "contamination", "Completeness_Model_Used"]
 genome_info.loc[:, "MAG ID"] = genome_info["MAG ID"].apply(lambda x: x + ".fa")
 
 taxonomy_info = gtdbtk_summary[["user_genome", "classification"]]

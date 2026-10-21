@@ -11,7 +11,7 @@
 # 01b: Clean data check (runs if QC: false)
 # 02: Metagenome Assembly
 # 02b: (Optional) Taxonomic Profiling
-# 03: Binning (MetaBAT2 + MaxBin2 + CONCOCT -> DASTool -> CheckM) (if True run 03b)
+# 03: Binning (MetaBAT2 + MaxBin2 + CONCOCT -> DASTool -> CheckM2) (if True run 03b)
 # 03b: Alternative Binning with MetaBAT2 standalone
 # 04: MAG Reporting & Annotation
 # 05: Final MultiQC Report

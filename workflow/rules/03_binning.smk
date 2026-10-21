@@ -16,7 +16,7 @@
 #   03b: Maxbin2
 #   03c: Concoct
 # 04: Bin Selection (Das Tool)
-# 05: Bin QC (CheckM)
+# 05: Bin QC (CheckM2)
 # 06: Bin QC filtering
 
 
@@ -516,7 +516,7 @@ rule CheckM_QC:
         summary = f"{OUTPUT_DIR}/01_Analysis/03_Binning/DAS_Tool/{{contig}}_DASTool/{{contig}}_DASTool_summary.tsv",
         dir = f"{OUTPUT_DIR}/01_Analysis/03_Binning/DAS_Tool/{{contig}}_DASTool/{{contig}}_DASTool_bins"
     output:
-        file = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{{contig}}_checkm_QC/qa_summary.tsv")
+        file = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{{contig}}_checkm_QC/quality_report.tsv")
     params:
         outdir = lambda wc: f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{wc.contig}_checkm_QC",
         db = config["CheckM"]["db"]
@@ -533,16 +533,15 @@ rule CheckM_QC:
         cpus_per_task = config["CheckM"]["threads"]
     shell:
         """
-        export CheckM_DATA_PATH={params.db}
-        checkm lineage_wf {input.dir} {params.outdir} -x fa -t {threads}
-        checkm qa {params.outdir}/lineage.ms {params.outdir} -f {output.file} -t {threads} -o 1 --tab_table
+        checkm2 predict --threads {threads} --input {input.dir} --output-directory {params.outdir} \
+            -x fa --database_path {params.db}
         """
 
 ######################### 06 BIN QC FILTERING ##################################
 
 rule Bin_filtering_QC_summary:
     input:
-        stats = expand(f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{{contig}}_checkm_QC/qa_summary.tsv", contig=CONTIGS),
+        stats = expand(f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/{{contig}}_checkm_QC/quality_report.tsv", contig=CONTIGS),
         bins = expand(f"{OUTPUT_DIR}/01_Analysis/03_Binning/DAS_Tool/{{contig}}_DASTool/{{contig}}_DASTool_bins", contig=CONTIGS)
     output:
         full_stats= f"{OUTPUT_DIR}/02_Results/03_Binning/CheckM_QC/all_MAGs_stats.tsv",

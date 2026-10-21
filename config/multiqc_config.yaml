@@ -30,7 +30,7 @@ module_order:
   - kraken
   - bowtie2
   - quast
-  - checkm
+  - checkm2
 
 # Report-level settings
 report_header_info:
