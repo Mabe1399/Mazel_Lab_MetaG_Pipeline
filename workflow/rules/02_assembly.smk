@@ -78,6 +78,7 @@ rule Metaquast_QC:
         metaquast.py \
             {input} \
             -t {threads} \
+	    --max-ref-num 0 \
             -o {output}
         """
 
