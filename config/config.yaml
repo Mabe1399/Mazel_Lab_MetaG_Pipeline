@@ -64,7 +64,7 @@ steps:
   QC: true                          # Include QC & preprocessing step When QC: false, run FastQC+MultiQC on pre-cleaned reads to verify quality
   concatenate_lanes: true          # true = cat multi-lane files; false = symlink single pre-concatenated files
   taxonomic_profiling: false        # Include Kraken2 taxonomic profiling
-  alternative_binning: false        # Use alternative binning with MetaBAT2 (03b) instead of Classic DASTool
+  alternative_binning: false        # false = MetaBAT2+MaxBin2+SemiBin2+DAS_Tool; true = standalone MetaBAT2 (03b)
   MAGs_Reporting_step: true         # Include MAGs reporting & annotation (04)
   final_report: false               # Generate a pipeline-wide MultiQC final report
 
@@ -168,17 +168,17 @@ Contig_filter:
 # Sample exclusion from binning uses exclude_samples: / exclude_pattern: above
 # (see BLANK / CONTROL SAMPLE EXCLUSION section).
 
-########### Backmapping ###################
-# Bowtie2 parameters
-Contig_indexing:
+########### Backmapping (alignment-free) ###################
+# Fairy parameters — replaces Bowtie2 contig indexing + all-vs-all backmapping
+Fairy_sketch:
   threads: 8
   memory_mb: 16000
   runtime_min: 120
 
-Contig_Backmapping:
-  threads: 16
-  memory_mb: 40000
-  runtime_min: 4320
+Fairy_coverage:
+  threads: 8
+  memory_mb: 16000
+  runtime_min: 60      # reused by all three per-contig fairy coverage invocations
 
 ######### Binning Tools Parameters #########
 # Metabat2 parameters
@@ -198,15 +198,12 @@ MaxBin2:
   # extra options
   min_contig_length: 1500 # tool default is 1000 bp; raised to match MetaBat2
 
-# CONCOCT parameters
-CONCOCT:
-  threads: 8
+# SemiBin2 parameters (replaces CONCOCT in the consensus set) — note SemiBin2's -a
+# abundance mode requires >=5 samples in the binning set; below that it errors out.
+SemiBin2:
+  threads: 16
   memory_mb: 45000
   runtime_min: 2880
-  # extra options
-  min_contig_length: 1500 # tool default is 1000 bp; raised to match MetaBat2
-  chunk_size: 10000 # default 10000 bp for CONCOCT
-  overlap_size: 0 # default 2500 bp for CONCOCT
   coverage_runtime: 120
 
 # DASTool parameters

@@ -11,7 +11,7 @@
 # 01b: Clean data check (runs if QC: false)
 # 02: Metagenome Assembly
 # 02b: (Optional) Taxonomic Profiling
-# 03: Binning (MetaBAT2 + MaxBin2 + CONCOCT -> DASTool -> CheckM2) (if True run 03b)
+# 03: Binning (MetaBAT2 + MaxBin2 + SemiBin2 -> DASTool -> CheckM2) (if True run 03b)
 # 03b: Alternative Binning with MetaBAT2 standalone
 # 04: MAG Reporting & Annotation
 # 05: Final MultiQC Report
@@ -43,7 +43,7 @@ CLEAN_DATA_DIR = (
 )
 
 ## High-quality bins directory — produced by whichever binning branch ran
-## (03b standalone MetaBAT2, or 03 MetaBAT2+MaxBin2+CONCOCT -> DAS_Tool).
+## (03b standalone MetaBAT2, or 03 MetaBAT2+MaxBin2+SemiBin2 -> DAS_Tool).
 ## Downstream rules (module 04) read from this, never a hardcoded literal,
 ## so they're agnostic to which branch produced it.
 HIGHQC_BINS_DIR = (

@@ -1,0 +1,6 @@
+name: semibin2_env
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - semibin=2.6.0

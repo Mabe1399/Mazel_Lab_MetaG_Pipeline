@@ -1,0 +1,6 @@
+name: fairy_env
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - fairy=0.5.8

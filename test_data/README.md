@@ -60,3 +60,10 @@ above need a per-cluster edit.
   length matching, valid record structure) but **not test-assembled locally** in the
   session that created them (no SPAdes available) — the first real cluster run is
   the actual end-to-end validation.
+- **SemiBin2 requires >=5 samples** for its `-a` (fairy-derived abundance) binning
+  mode, confirmed against the installed tool directly. With only 2 samples, a *real*
+  run of the default consensus branch (`alternative_binning: false`) will fail at
+  `SemiBin2_binning` — dry-run validation (`snakemake -n`) is unaffected, since it
+  never executes real commands. For a real end-to-end execution test, use
+  `alternative_binning: true` (standalone MetaBAT2, no SemiBin2 involved), or expand
+  `reads/` to 5+ samples via `generate_test_reads.py` first.

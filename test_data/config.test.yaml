@@ -40,7 +40,13 @@ steps:
   QC: false                         # reads in test_data/reads/ are already "_cleaned"
   concatenate_lanes: true           # unused when QC: false
   taxonomic_profiling: false
-  alternative_binning: false        # consensus binning (MetaBAT2+MaxBin2+CONCOCT+DAS_Tool)
+  alternative_binning: false        # consensus binning (MetaBAT2+MaxBin2+SemiBin2+DAS_Tool) —
+                                     # NOTE: SemiBin2's abundance mode requires >=5 samples; with
+                                     # only 2 samples here, a REAL run of this branch will fail at
+                                     # SemiBin2_binning (dry-run validation is unaffected, since it
+                                     # never executes real commands). Use alternative_binning: true
+                                     # for a real 2-sample execution test, or expand test_data/reads/
+                                     # to >=5 samples to exercise this branch for real.
   MAGs_Reporting_step: true         # GTDB-Tk + dRep + MAG summary table
   final_report: true                # also exercises the checkm2 MultiQC module
 
@@ -112,12 +118,12 @@ Contig_filter:
   length_threshold: 1500
   coverage_threshold: 1
 
-Contig_indexing:
+Fairy_sketch:
   threads: 1
   memory_mb: 1000
   runtime_min: 10
 
-Contig_Backmapping:
+Fairy_coverage:
   threads: 1
   memory_mb: 2000
   runtime_min: 15
@@ -134,14 +140,10 @@ MaxBin2:
   runtime_min: 15
   min_contig_length: 1500
 
-CONCOCT:
+SemiBin2:
   threads: 1
   memory_mb: 2000
   runtime_min: 15
-  min_contig_length: 1500
-  chunk_size: 10000
-  overlap_size: 0
-  coverage_runtime: 10
 
 DASTool:
   threads: 1

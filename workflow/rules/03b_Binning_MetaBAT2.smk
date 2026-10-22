@@ -20,8 +20,8 @@
 #                alternative_binning flag), so no separate config update is needed.
 
 # Steps included:
-# 01: Contig indexing
-# 02: Backmapping (all vs all)
+# 01: Fairy sketching
+# 02: Fairy coverage
 # 03: Metabat2
 # 04: Bin QC (CheckM2)
 # 05: Bin QC filtering
@@ -31,117 +31,64 @@
 # RULES
 ##################################################
 
-#################### 01 CONTIG INDEXING ####################
+#################### 01 FAIRY SKETCHING ####################
 
-rule Contig_indexing:
+rule Fairy_sketch:
     input:
+        R1 = expand(f"{CLEAN_DATA_DIR}/{{sample}}_R1_cleaned.fastq.gz", sample=CONTIGS),
+        R2 = expand(f"{CLEAN_DATA_DIR}/{{sample}}_R2_cleaned.fastq.gz", sample=CONTIGS),
+    output:
+        sketches = temp(expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS))
+    params:
+        sketch_dir = f"{SCRATCH_DIR}/Fairy_Sketch",
+        samples = " ".join(CONTIGS),
+    conda:
+        "../envs/Fairy.yaml"
+    threads: config["Fairy_sketch"]["threads"]
+    log:
+        f"{LOG_DIR}/03_Binning/Fairy/sketch.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/Fairy/sketch.tsv"
+    resources:
+        mem_mb = config["Fairy_sketch"]["memory_mb"],
+        runtime = config["Fairy_sketch"]["runtime_min"],
+        cpus_per_task = config["Fairy_sketch"]["threads"]
+    shell:
+        """
+        mkdir -p {params.sketch_dir}
+        fairy sketch -1 {input.R1} -2 {input.R2} \
+            -S {params.samples} \
+            -d {params.sketch_dir} \
+            -t {threads} > {log} 2>&1
+        """
+
+#################### 02 FAIRY COVERAGE ####################
+
+rule Fairy_coverage_metabat2:
+    input:
+        sketches = expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS),
         contig = (
             f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
             f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
         )
     output:
-        temp([
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.2.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.3.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.4.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.2.bt2",
-        ])
-    params:
-        prefix = lambda wc: f"{SCRATCH_DIR}/Contig_Index/{wc.contig}/{wc.contig}_index",
-        outdir = lambda wc: f"{SCRATCH_DIR}/Contig_Index/{wc.contig}"
-    conda:
-        "../envs/bowtie2_mapping.yaml"
-    threads: config["Contig_indexing"]["threads"]
-    log:
-        f"{LOG_DIR}/03_Binning/Indexing/{{contig}}_Contig_indexing.log"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Indexing/{{contig}}_Contig_indexing.tsv"
-    resources:
-        mem_mb = config["Contig_indexing"]["memory_mb"],
-        runtime = config["Contig_indexing"]["runtime_min"],
-        cpus_per_task = config["Contig_indexing"]["threads"]
-    shell:
-        """
-        mkdir -p {params.outdir}
-        bowtie2-build --threads {threads} {input.contig} {params.prefix} > {log} 2>&1
-        """
-
-#################### 02 BACKMAPPING ####################
-
-rule Contig_Backmapping:
-    input:
-        R1 = f"{CLEAN_DATA_DIR}/{{reads}}_R1_cleaned.fastq.gz",
-        R2 = f"{CLEAN_DATA_DIR}/{{reads}}_R2_cleaned.fastq.gz",
-        index = [
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.2.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.3.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.4.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.2.bt2",
-        ]
-    output:
-        bam = temp(f"{SCRATCH_DIR}/Backmapping/{{contig}}/{{reads}}_mapped_to_{{contig}}_contigs.bam"),
-        bai = temp(f"{SCRATCH_DIR}/Backmapping/{{contig}}/{{reads}}_mapped_to_{{contig}}_contigs.bam.bai")
-    params:
-        index = lambda wc: f"{SCRATCH_DIR}/Contig_Index/{wc.contig}/{wc.contig}_index"
-    conda:
-        "../envs/bowtie2_mapping.yaml"
-    threads: config["Contig_Backmapping"]["threads"]
-    log:
-        f"{LOG_DIR}/03_Binning/Mapping/{{reads}}_to_{{contig}}_Contig_backmapping.log"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Mapping/{{reads}}_to_{{contig}}_Contig_backmapping.tsv"
-    resources:
-        mem_mb = config["Contig_Backmapping"]["memory_mb"],
-        runtime = config["Contig_Backmapping"]["runtime_min"],
-        cpus_per_task = config["Contig_Backmapping"]["threads"]
-    shell:
-        """
-        mkdir -p $(dirname {output.bam})
-        bowtie2 --threads {threads} \
-            --no-unal \
-            -x {params.index} \
-            -1 {input.R1} \
-            -2 {input.R2} \
-            2>> {log} \
-            | samtools view -@ {threads} -m 1G -bS - 2>> {log} \
-            | samtools sort -@ {threads} -m 1G -o {output.bam} 2>> {log}
-        
-        samtools index {output.bam} 2>> {log}
-        """
-
-#################### 03 METABAT2 ####################
-
-rule Depth_calculations:
-    input:
-       bam = lambda wc: expand(
-            f"{SCRATCH_DIR}/Backmapping/{wc.contig}/{{reads}}_mapped_to_{wc.contig}_contigs.bam",
-            reads=CONTIGS
-        )
-    output:
         depth = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/MetaBat2/Depth_Contig/{{contig}}_depth.txt")
     conda:
-        "../envs/Binning.yaml"
-    threads: config["MetaBat2"]["threads"]
+        "../envs/Fairy.yaml"
+    threads: config["Fairy_coverage"]["threads"]
     log:
-        f"{LOG_DIR}/03_Binning/MetaBat2/Depth/{{contig}}_depth.log"
+        f"{LOG_DIR}/03_Binning/Fairy/{{contig}}_coverage.log"
     benchmark:
-        f"{BENCH_DIR}/03_Binning/MetaBat2/Depth/{{contig}}_depth.tsv"
+        f"{BENCH_DIR}/03_Binning/Fairy/{{contig}}_coverage.tsv"
     resources:
-        mem_mb = config["MetaBat2"]["memory_mb"],
-        runtime = config["MetaBat2"]["runtime_min"],
-        cpus_per_task = config["MetaBat2"]["threads"]
+        mem_mb = config["Fairy_coverage"]["memory_mb"],
+        runtime = config["Fairy_coverage"]["runtime_min"],
+        cpus_per_task = config["Fairy_coverage"]["threads"]
     shell:
         """
-        echo "Using BAMs:" >&2
-        printf "  %s\n" {input.bam} >&2
-
-        jgi_summarize_bam_contig_depths \
-            --outputDepth {output.depth} \
-            {input.bam} > {log} 2>&1
+        fairy coverage {input.sketches} {input.contig} \
+            -t {threads} \
+            -o {output.depth} > {log} 2>&1
         """
 
 

@@ -19,7 +19,7 @@ The pipeline runs in four stages, each its own Snakemake module under `workflow/
 |---|---|---|
 | **01 · QC & preprocessing** | Concatenate (or symlink) lanes → FastQC → adapter/quality trimming → host-genome filtering → FastQC again. Optionally also runs Kraken2 taxonomic profiling on the trimmed reads. | FastQC, Trimmomatic, Bowtie2, Kraken2 |
 | **02 · Assembly** | Metagenome assembly, contig QC, and length/coverage filtering of contigs before binning. | metaSPAdes, MetaQuast |
-| **03 · Binning** | Backmap every sample's reads against every sample's contigs ("all vs. all"), then bin contigs into draft genomes and quality-check them. Two selectable strategies (see below). | MetaBAT2, MaxBin2, CONCOCT, DAS_Tool, CheckM2 |
+| **03 · Binning** | Alignment-free coverage estimation across all samples (`fairy`), then bin contigs into draft genomes and quality-check them. Two selectable strategies (see below). | fairy, MetaBAT2, MaxBin2, SemiBin2, DAS_Tool, CheckM2 |
 | **04 · Reporting** | Taxonomically classify each high-quality bin, dereplicate the catalogue into representative genomes, and produce the final per-MAG summary table. | GTDB-Tk, dRep |
 
 A final, optional stage aggregates every stage's QC metrics (plus per-rule runtime/memory benchmarks) into
@@ -29,9 +29,10 @@ one MultiQC report.
 
 The `Alternative Binning?` branch in the diagram is a config switch, not a manual choice made at run time:
 
-- **Consensus binning** (`alternative_binning: false`, default) — runs MetaBAT2, MaxBin2, and CONCOCT in
-  parallel, then merges their bin sets with DAS_Tool to pick the best-scoring consensus bins.
-- **Standalone MetaBAT2** (`alternative_binning: true`) — skips MaxBin2/CONCOCT/DAS_Tool entirely and
+- **Consensus binning** (`alternative_binning: false`, default) — runs MetaBAT2, MaxBin2, and SemiBin2 in
+  parallel, then merges their bin sets with DAS_Tool to pick the best-scoring consensus bins. SemiBin2 needs
+  5+ samples in the binning set (its abundance-input mode's own requirement).
+- **Standalone MetaBAT2** (`alternative_binning: true`) — skips MaxBin2/SemiBin2/DAS_Tool entirely and
   quality-filters MetaBAT2's bins directly. Faster, but no cross-tool consensus.
 
 Both feed the same downstream QC filtering step (CheckM2 completeness/contamination thresholds), just into
@@ -99,7 +100,7 @@ steps:
   QC: true                    # false = skip straight to assembly on pre-cleaned reads
   concatenate_lanes: true      # true = cat multi-lane fastqs; false = symlink single-lane fastqs
   taxonomic_profiling: false   # Kraken2 profiling of trimmed reads
-  alternative_binning: false   # false = MetaBAT2+MaxBin2+CONCOCT+DAS_Tool; true = standalone MetaBAT2
+  alternative_binning: false   # false = MetaBAT2+MaxBin2+SemiBin2+DAS_Tool; true = standalone MetaBAT2
   MAGs_Reporting_step: true    # GTDB-Tk classification + dRep dereplication + MAG summary table
   final_report: false          # aggregate everything into one MultiQC report
 ```

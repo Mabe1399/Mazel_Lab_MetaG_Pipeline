@@ -9,12 +9,12 @@
 # The workflow start with the assumption that all the data files are in the same directory.
 
 # Steps included:
-# 01: Contig indexing
-# 02: Backmapping (all vs all)
+# 01: Fairy sketching
+# 02: Fairy coverage
 # 03: Mixte Binning
 #   03a: Metabat2
 #   03b: Maxbin2
-#   03c: Concoct
+#   03c: SemiBin2
 # 04: Bin Selection (Das Tool)
 # 05: Bin QC (CheckM2)
 # 06: Bin QC filtering
@@ -24,113 +24,67 @@
 # RULES
 ##################################################
 
-#################### 01 CONTIG INDEXING ####################
+#################### 01 FAIRY SKETCHING ####################
 
-rule Contig_indexing:
+rule Fairy_sketch:
     input:
+        R1 = expand(f"{CLEAN_DATA_DIR}/{{sample}}_R1_cleaned.fastq.gz", sample=CONTIGS),
+        R2 = expand(f"{CLEAN_DATA_DIR}/{{sample}}_R2_cleaned.fastq.gz", sample=CONTIGS),
+    output:
+        sketches = temp(expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS))
+    params:
+        sketch_dir = f"{SCRATCH_DIR}/Fairy_Sketch",
+        samples = " ".join(CONTIGS),
+    conda:
+        "../envs/Fairy.yaml"
+    threads: config["Fairy_sketch"]["threads"]
+    log:
+        f"{LOG_DIR}/03_Binning/Fairy/sketch.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/Fairy/sketch.tsv"
+    resources:
+        mem_mb = config["Fairy_sketch"]["memory_mb"],
+        runtime = config["Fairy_sketch"]["runtime_min"],
+        cpus_per_task = config["Fairy_sketch"]["threads"]
+    shell:
+        """
+        mkdir -p {params.sketch_dir}
+        fairy sketch -1 {input.R1} -2 {input.R2} \
+            -S {params.samples} \
+            -d {params.sketch_dir} \
+            -t {threads} > {log} 2>&1
+        """
+
+#################### 02 FAIRY COVERAGE #########################
+
+
+#################### 03A METABAT2 ####################
+
+rule Fairy_coverage_metabat2:
+    input:
+        sketches = expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS),
         contig = (
             f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
             f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
         )
     output:
-        temp([
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.2.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.3.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.4.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.2.bt2",
-        ])
-    params:
-        prefix = lambda wc: f"{SCRATCH_DIR}/Contig_Index/{wc.contig}/{wc.contig}_index",
-        outdir = lambda wc: f"{SCRATCH_DIR}/Contig_Index/{wc.contig}"
-    conda:
-        "../envs/bowtie2_mapping.yaml"
-    threads: config["Contig_indexing"]["threads"]
-    log:
-        f"{LOG_DIR}/03_Binning/Indexing/{{contig}}_Contig_indexing.log"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Indexing/{{contig}}_Contig_indexing.tsv"
-    resources:
-        mem_mb = config["Contig_indexing"]["memory_mb"],
-        runtime = config["Contig_indexing"]["runtime_min"],
-        cpus_per_task = config["Contig_indexing"]["threads"]
-    shell:
-        """
-        mkdir -p {params.outdir}
-        bowtie2-build --threads {threads} {input.contig} {params.prefix} 2> {log}
-        """
-
-#################### 02 BACKMAPPING ####################
-
-rule Contig_Backmapping:
-    input:
-        R1 = f"{CLEAN_DATA_DIR}/{{reads}}_R1_cleaned.fastq.gz",
-        R2 = f"{CLEAN_DATA_DIR}/{{reads}}_R2_cleaned.fastq.gz",
-        index = [
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.2.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.3.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.4.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.1.bt2",
-            f"{SCRATCH_DIR}/Contig_Index/{{contig}}/{{contig}}_index.rev.2.bt2",
-        ]
-    output:
-        bam = temp(f"{SCRATCH_DIR}/Backmapping/{{contig}}/{{reads}}_mapped_to_{{contig}}_contigs.bam"),
-        bai = temp(f"{SCRATCH_DIR}/Backmapping/{{contig}}/{{reads}}_mapped_to_{{contig}}_contigs.bam.bai")
-    params:
-        index = lambda wc: f"{SCRATCH_DIR}/Contig_Index/{wc.contig}/{wc.contig}_index"
-    conda:
-        "../envs/bowtie2_mapping.yaml"
-    threads: config["Contig_Backmapping"]["threads"]
-    log:
-        f"{LOG_DIR}/03_Binning/Mapping/{{reads}}_to_{{contig}}_Contig_backmapping.log"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Mapping/{{reads}}_to_{{contig}}_Contig_backmapping.tsv"
-    resources:
-        mem_mb = config["Contig_Backmapping"]["memory_mb"],
-        runtime = config["Contig_Backmapping"]["runtime_min"],
-        cpus_per_task = config["Contig_Backmapping"]["threads"]
-    shell:
-        """
-        mkdir -p $(dirname {output.bam})
-        bowtie2 --threads {threads} \
-            --no-unal \
-            -x {params.index} \
-            -1 {input.R1} \
-            -2 {input.R2} \
-            2>> {log} \
-            | samtools view -@ {threads} -m 1G -bS - 2>> {log} \
-            | samtools sort -@ {threads} -m 1G -o {output.bam} 2>> {log}
-        
-        samtools index {output.bam} 2>> {log}
-        """
-
-#################### 03 MIXTE BINNING #########################
-
-
-#################### 03A METABAT2 ####################
-
-rule Depth_calculations:
-    input:
-       bam = lambda wc: expand(
-            f"{SCRATCH_DIR}/Backmapping/{wc.contig}/{{reads}}_mapped_to_{wc.contig}_contigs.bam",
-            reads=CONTIGS
-        )
-    output:
         depth = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/MetaBat2/Depth_Contig/{{contig}}_depth.txt")
     conda:
-        "../envs/Binning.yaml"
+        "../envs/Fairy.yaml"
+    threads: config["Fairy_coverage"]["threads"]
     log:
-        f"{LOG_DIR}/03_Binning/MetaBat2/Depth/{{contig}}_depth.log"
+        f"{LOG_DIR}/03_Binning/Fairy/{{contig}}_coverage.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/Fairy/{{contig}}_coverage.tsv"
+    resources:
+        mem_mb = config["Fairy_coverage"]["memory_mb"],
+        runtime = config["Fairy_coverage"]["runtime_min"],
+        cpus_per_task = config["Fairy_coverage"]["threads"]
     shell:
         """
-        echo "Using BAMs:" >&2
-        printf "  %s\n" {input.bam} >&2
-
-        jgi_summarize_bam_contig_depths \
-            --outputDepth {output.depth} \
-            {input.bam} 2> {log}
+        fairy coverage {input.sketches} {input.contig} \
+            -t {threads} \
+            -o {output.depth} > {log} 2>&1
         """
 
 
@@ -170,40 +124,61 @@ rule Metabat2:
 
 ######################### 03B MAXBIN2 ################################
 
-rule maxbin2_coverage_table:
+rule Fairy_coverage_maxbin2:
     input:
-        bam = f"{SCRATCH_DIR}/Backmapping/{{contig}}/{{reads}}_mapped_to_{{contig}}_contigs.bam"
+        sketches = expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS),
+        contig = (
+            f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
+            f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
+        )
     output:
-        coverage_table = temp(f"{SCRATCH_DIR}/Coverage_table/{{contig}}/{{reads}}_mapped_to_{{contig}}_coverage.txt")
+        wide = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/MaxBin2/Fairy_coverage/{{contig}}_maxbin_wide.tsv")
     conda:
-        "../envs/bowtie2_mapping.yaml"
+        "../envs/Fairy.yaml"
+    threads: config["Fairy_coverage"]["threads"]
     log:
-        f"{LOG_DIR}/03_Binning/MaxBin2/Coverage_table/{{reads}}_mapped_to_{{contig}}_coverage.log"
+        f"{LOG_DIR}/03_Binning/Fairy/{{contig}}_maxbin_coverage.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/Fairy/{{contig}}_maxbin_coverage.tsv"
+    resources:
+        mem_mb = config["Fairy_coverage"]["memory_mb"],
+        runtime = config["Fairy_coverage"]["runtime_min"],
+        cpus_per_task = config["Fairy_coverage"]["threads"]
     shell:
         """
-        samtools coverage {input.bam} \
-        | tail -n +2 \
-        | sort -k1 \
-        | cut -f1,6 > {output.coverage_table} 2> {log}
+        fairy coverage {input.sketches} {input.contig} \
+            --maxbin-format \
+            -t {threads} \
+            -o {output.wide} > {log} 2>&1
         """
 
 
 rule maxbin2_abund_list:
     input:
-        lambda wc: expand(
-            f"{SCRATCH_DIR}/Coverage_table/{wc.contig}/{{reads}}_mapped_to_{wc.contig}_coverage.txt",
-            reads=CONTIGS
-        )
+        wide = f"{OUTPUT_DIR}/01_Analysis/03_Binning/MaxBin2/Fairy_coverage/{{contig}}_maxbin_wide.tsv"
     output:
-        abund_list = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/MaxBin2/Abundance_list/{{contig}}_abund_list.txt")
+        abund_list = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/MaxBin2/Abundance_list/{{contig}}_abund_list.txt"),
+        per_sample = temp(expand(
+            f"{SCRATCH_DIR}/Coverage_table/{{{{contig}}}}/{{sample}}_coverage.txt", sample=CONTIGS
+        ))
+    params:
+        outdir = lambda wc: f"{SCRATCH_DIR}/Coverage_table/{wc.contig}",
+        samples = " ".join(CONTIGS),
+    conda:
+        "../envs/Parsing.yaml"
     benchmark:
         f"{BENCH_DIR}/03_Binning/MaxBin2/Abundance_list/{{contig}}_abund_list.tsv"
     log:
         f"{LOG_DIR}/03_Binning/MaxBin2/Abundance_list/{{contig}}_abund_list.log"
-    run:
-        with open(output.abund_list, 'w') as f:
-            for fp in input:
-                f.write('%s\n' % fp)
+    shell:
+        """
+        mkdir -p {params.outdir}
+        python scripts/split_fairy_maxbin_table.py \
+            --input {input.wide} \
+            --outdir {params.outdir} \
+            --samples {params.samples} \
+            --output-list {output.abund_list} > {log} 2>&1
+        """
 
 
 rule MaxBin2:
@@ -249,157 +224,75 @@ rule MaxBin2:
         """
 
 
-######################### 03C CONCOCT ################################
+######################### 03C SEMIBIN2 ################################
 
-rule cut_up_fasta:
+rule Fairy_coverage_aemb:
     input:
-        contigs = (
+        sketches = expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS),
+        contig = (
             f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
             f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
         )
     output:
-        bed = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/contigs_10K/{{contig}}_contigs.bed"),
-        contigs_10K = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/contigs_10K/{{contig}}_contigs.fa")
-    conda:
-        "../envs/Binning.yaml"
+        # One aemb file per sample: fairy coverage --aemb-format only produces a true
+        # single-column-per-sample file when given one sketch at a time (confirmed —
+        # given all sketches at once it instead produces the same wide table as
+        # --maxbin-format, just without a header). Each call is near-instant (no
+        # alignment), so N per-contig calls stay cheap despite the O(N) loop.
+        aemb_dir = temp(directory(f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Fairy_aemb/{{contig}}"))
     params:
-        chunk_size = config["CONCOCT"]["chunk_size"],
-        overlap_size = config["CONCOCT"]["overlap_size"]
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Concoct/cut_up_fasta/{{contig}}_cut_up.tsv"
-    log:
-        f"{LOG_DIR}/03_Binning/Concoct/cut_up_fasta/{{contig}}_cut_up.log"
-    shell:
-        """
-        cut_up_fasta.py {input.contigs} \
-        -c {params.chunk_size} \
-        -o {params.overlap_size} \
-        --merge_last \
-        -b {output.bed} > {output.contigs_10K} 2> {log}
-        """
-
-
-rule Concoct_coverage_table:
-    input:
-        bed = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/contigs_10K/{{contig}}_contigs.bed",
-        bam = lambda wc: expand(
-            f"{SCRATCH_DIR}/Backmapping/{wc.contig}/{{reads}}_mapped_to_{wc.contig}_contigs.bam",
-            reads=CONTIGS
-        ),
-        bai = lambda wc: expand(
-            f"{SCRATCH_DIR}/Backmapping/{wc.contig}/{{reads}}_mapped_to_{wc.contig}_contigs.bam.bai",
-            reads=CONTIGS)
-    output:
-        coverage_table = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/coverage_tables/{{contig}}_coverage_table.txt")
+        sketch_dir = f"{SCRATCH_DIR}/Fairy_Sketch",
+        samples = CONTIGS
     conda:
-        "../envs/Binning.yaml"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Concoct/coverage_table/{{contig}}_coverage.tsv"
+        "../envs/Fairy.yaml"
+    threads: config["Fairy_coverage"]["threads"]
     log:
-        f"{LOG_DIR}/03_Binning/Concoct/coverage_table/{{contig}}_coverage.log"
+        f"{LOG_DIR}/03_Binning/Fairy/{{contig}}_aemb_coverage.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/Fairy/{{contig}}_aemb_coverage.tsv"
     resources:
-        runtime = config["CONCOCT"]["coverage_runtime"]
+        mem_mb = config["Fairy_coverage"]["memory_mb"],
+        runtime = config["Fairy_coverage"]["runtime_min"],
+        cpus_per_task = config["Fairy_coverage"]["threads"]
     shell:
         """
-        concoct_coverage_table.py {input.bed} \
-        {input.bam} > {output.coverage_table} 2> {log}
+        mkdir -p {output.aemb_dir}
+        for sample in {params.samples}; do
+            fairy coverage {params.sketch_dir}/${{sample}}.paired.bcsp {input.contig} \
+                --aemb-format -t {threads} \
+                -o {output.aemb_dir}/${{sample}}_aemb.txt
+        done > {log} 2>&1
         """
 
 
-rule Concoct:
+rule SemiBin2_binning:
     input:
-        contig_10K = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/contigs_10K/{{contig}}_contigs.fa",
-        coverage_table = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/coverage_tables/{{contig}}_coverage_table.txt"
-    output:
-        clustering = temp(
-            f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/clustering/{{contig}}_concoct/"
-            f"{{contig}}_bins_clustering_gt{config["CONCOCT"]["min_contig_length"]}.csv")
-    params:
-        bins = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/clustering/{{contig}}_concoct/{{contig}}_bins",
-        min_contig_length = config["CONCOCT"]["min_contig_length"]
-    conda:
-        "../envs/Binning.yaml"
-    threads: config["CONCOCT"]["threads"]
-    log:
-        f"{LOG_DIR}/03_Binning/Concoct/clustering/{{contig}}_clustering.log"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Concoct/clustering/{{contig}}_clustering.tsv"
-    resources:
-        mem_mb = config["CONCOCT"]["memory_mb"],
-        cpus_per_task = config["CONCOCT"]["threads"],
-        runtime = config["CONCOCT"]["runtime_min"]
-    shell:
-        """
-        concoct --threads {threads} -l {params.min_contig_length} \
-        --composition_file {input.contig_10K} \
-        --coverage_file {input.coverage_table} \
-        -b {params.bins}
-        2> {log} 1>&2
-        """
-
-
-rule merge_cutup_clustering:
-    input:
-        bins = (
-            f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/clustering/{{contig}}_concoct/"
-            f"{{contig}}_bins_clustering_gt{config["CONCOCT"]["min_contig_length"]}.csv")
-    output:
-        merged = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/merge_cutup_clustering/{{contig}}_clustering_merged.csv")
-    conda:
-        "../envs/Binning.yaml"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Concoct/merge_cutup_clustering/{{contig}}_clustering_merged.tsv"
-    log:
-        f"{LOG_DIR}/03_Binning/Concoct/merge_cutup_clustering/{{contig}}_clustering_merged.log"
-    shell:
-        """
-        merge_cutup_clustering.py {input.bins} > {output.merged} 2> {log}
-        """
-
-
-rule extract_fasta_bins:
-    input:
-        contigs = (
+        contig = (
             f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
             f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
         ),
-        clustering_merged = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/merge_cutup_clustering/{{contig}}_clustering_merged.csv"
+        aemb_dir = f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Fairy_aemb/{{contig}}"
     output:
-        fasta_bins = temp(directory(f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/Bins/{{contig}}_concoct"))
+        bins = temp(directory(f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Bins/{{contig}}_semibin2"))
     conda:
-        "../envs/Binning.yaml"
-    benchmark:
-        f"{BENCH_DIR}/03_Binning/Concoct/extract_fasta_bins/{{contig}}_extract_fasta.tsv"
+        "../envs/SemiBin2.yaml"
+    threads: config["SemiBin2"]["threads"]
     log:
-        f"{LOG_DIR}/03_Binning/Concoct/extract_fasta_bins/{{contig}}_extract_fasta.log"
+        f"{LOG_DIR}/03_Binning/SemiBin2/{{contig}}_semibin2.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/SemiBin2/{{contig}}_semibin2.tsv"
+    resources:
+        mem_mb = config["SemiBin2"]["memory_mb"],
+        runtime = config["SemiBin2"]["runtime_min"],
+        cpus_per_task = config["SemiBin2"]["threads"]
     shell:
         """
-        mkdir -p {output.fasta_bins}
-        extract_fasta_bins.py \
-        {input.contigs} \
-        {input.clustering_merged} \
-        --output_path {output.fasta_bins} \
-        2> {log}
-        """
-
-rule normalize_concoct_bins:
-    input:
-        bins = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/Bins/{{contig}}_concoct"
-    output:
-        normalized = temp(directory(
-            f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/Bins/{{contig}}_concoct_normalized"
-        ))
-    localrule: True
-    conda:
-        "../envs/Binning.yaml"
-    shell:
-        """
-        mkdir -p {output.normalized}
-        i=0
-        for f in {input.bins}/*.fa; do
-            mv "$f" "{output.normalized}/{wildcards.contig}_concoct.bin.${{i}}.fa"
-            i=$((i+1))
-        done
+        SemiBin2 single_easy_bin \
+            -i {input.contig} \
+            -a {input.aemb_dir}/*.txt \
+            -o {output.bins} \
+            --compression none \
+            -t {threads} > {log} 2>&1
         """
 
 ######################### 04 BIN SELECTION ###########################
@@ -443,22 +336,27 @@ rule maxbin2_Scaffolds2Bin:
         """
 
 
-rule concoct_Scaffolds2Bin:
+rule semibin2_Scaffolds2Bin:
     input:
-        bins = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/Bins/{{contig}}_concoct_normalized/"
+        bins = f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Bins/{{contig}}_semibin2"
     output:
-        scaffolds2bin = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv")
+        scaffolds2bin = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv")
     conda:
         "../envs/Binning.yaml"
     benchmark:
-        f"{BENCH_DIR}/03_Binning/Concoct/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv"
+        f"{BENCH_DIR}/03_Binning/SemiBin2/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv"
     log:
-        f"{LOG_DIR}/03_Binning/Concoct/scaffolds2bin/{{contig}}_Scaffolds2Bin.log"
+        f"{LOG_DIR}/03_Binning/SemiBin2/scaffolds2bin/{{contig}}_Scaffolds2Bin.log"
     shell:
         """
+        # NOTE: output_bins/ is SemiBin2's documented default results subdirectory —
+        # not independently confirmed in this session (our synthetic test fixture has
+        # too few contigs for SemiBin2's clustering to complete past input validation).
+        # Verify this path on the first real run against actual assembled contigs.
         Fasta_to_Contig2Bin.sh \
-        -i {input.bins} \
-        -e fa > {output.scaffolds2bin}
+        -i {input.bins}/output_bins \
+        -e fa \
+        | awk 'BEGIN{{OFS="\t"}} {{print $1,$NF}}' > {output.scaffolds2bin} 2> {log}
         """
 
 
@@ -466,7 +364,7 @@ rule DAS_Tool:
     input:
         metabat2 = f"{OUTPUT_DIR}/01_Analysis/03_Binning/MetaBat2/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv",
         maxbin2 = f"{OUTPUT_DIR}/01_Analysis/03_Binning/MaxBin2/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv",
-        concoct = f"{OUTPUT_DIR}/01_Analysis/03_Binning/Concoct/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv",
+        semibin2 = f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/scaffolds2bin/{{contig}}_Scaffolds2Bin.tsv",
         contigs = (
             f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
             f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
@@ -491,10 +389,10 @@ rule DAS_Tool:
     shell:
         """
         DAS_Tool \
-        --bins {input.metabat2},{input.maxbin2},{input.concoct} \
+        --bins {input.metabat2},{input.maxbin2},{input.semibin2} \
         --contigs {input.contigs} \
         --outputbasename {params.basename} \
-        --labels metabat2,maxbin2,concoct \
+        --labels metabat2,maxbin2,semibin2 \
         --write_bins \
         --write_bin_evals \
         --threads {threads} \
