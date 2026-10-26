@@ -67,6 +67,16 @@ def get_multiqc_inputs(wildcards):
         inputs["mag_info"] = (
             f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv"
         )
+        inputs["gtdbtk_multiqc"] = (
+            f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/gtdbtk_summary_multiqc.tsv"
+        )
+
+    # DAS_Tool consensus (and its per-binner candidate-bin summary) only exists in
+    # 03_binning.smk's consensus branch — 03b_Binning_MetaBAT2.smk has no DAS_Tool step.
+    if not config["steps"].get("alternative_binning", True):
+        inputs["dastool_summary"] = (
+            f"{OUTPUT_DIR}/02_Results/03_Binning/DASTool_binning_summary.tsv"
+        )
 
     if config["steps"].get("taxonomic_profiling"):
         inputs["kraken2_tax"] = (
@@ -94,7 +104,12 @@ def _build_multiqc_dirs():
             f"{LOG_DIR}/01_QC_Preprocessing/HF/",
         ]
     if config["steps"].get("MAGs_Reporting_step"):
-        dirs.append(f"{OUTPUT_DIR}/01_Analysis/04_MAGs_Reporting_Annotating/")
+        dirs += [
+            f"{OUTPUT_DIR}/01_Analysis/04_MAGs_Reporting_Annotating/",
+            f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/",
+        ]
+    if not config["steps"].get("alternative_binning", True):
+        dirs.append(f"{OUTPUT_DIR}/02_Results/03_Binning/")
 
     return dirs
 

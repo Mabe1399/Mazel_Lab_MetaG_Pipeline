@@ -184,6 +184,27 @@ rule parse_gtdbtk_summary_to_iTOL:
         --outdir {output.dir} > {log} 2>&1
         """
 
+
+rule filter_gtdbtk_for_multiqc:
+    input:
+        gtdb_summary = f"{OUTPUT_DIR}/01_Analysis/04_MAGs_Reporting_Annotating/gtdb_classify_summary/gtdbtk.bac120.summary.tsv"
+    output:
+        filtered = f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/gtdbtk_summary_multiqc.tsv"
+    conda:
+        "../envs/Parsing.yaml"
+    log:
+        f"{LOG_DIR}/04_MAGs_Reporting_Annotating/filter_gtdbtk_for_multiqc.log"
+    benchmark:
+        f"{BENCH_DIR}/04_MAGs_Reporting_Annotating/filter_gtdbtk_for_multiqc.tsv"
+    threads: 1
+    localrule: True
+    shell:
+        """
+        python3 scripts/filter_gtdbtk_summary_for_multiqc.py \
+        --input {input.gtdb_summary} \
+        --output {output.filtered} > {log} 2>&1
+        """
+
 #################### 04 DEREPLICATION #############################
 
 rule parse_dRep_genomeInfo:

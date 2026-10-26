@@ -46,6 +46,107 @@ fn_ignore_dirs:
 
 # Custom data sections — picked up by MultiQC as a custom table
 custom_data:
+  mag_summary:
+    id: "mag_summary"
+    section_name: "MAG Catalogue"
+    description: >
+      Final dereplicated MAG set: completeness/contamination (CheckM2), taxonomy
+      (GTDB-Tk), and dRep clustering. One row per representative MAG.
+      Produced by parse_MAG_representative_info.py.
+    plot_type: "table"
+    pconfig:
+      id: "mag_summary_table"
+      title: "MAG catalogue"
+      col1_header: "MAG ID"
+    headers:
+      completeness:
+        title: "Completeness (%)"
+        min: 0
+        max: 100
+        format: "{:.1f}"
+      contamination:
+        title: "Contamination (%)"
+        min: 0
+        format: "{:.2f}"
+      Completeness_Model_Used:
+        title: "CheckM2 model"
+        description: "General (gradient boost) or Specific (neural network) model used"
+      Domain:
+        title: "Domain"
+      Phylum:
+        title: "Phylum"
+      Class:
+        title: "Class"
+      Order:
+        title: "Order"
+      Family:
+        title: "Family"
+      Genus:
+        title: "Genus"
+      Species:
+        title: "Species"
+      dRep_Score:
+        title: "dRep score"
+        format: "{:.2f}"
+      dRep_cluster:
+        title: "dRep cluster"
+
+  dastool_summary:
+    id: "dastool_summary"
+    section_name: "DAS_Tool Bin Selection"
+    description: >
+      Final consensus bins DAS_Tool selected from the three binners (MetaBAT2,
+      MaxBin2, SemiBin2), with each bin's binner-of-origin and single-copy-gene
+      (SCG) self-score — independent of CheckM2's score above. One row per
+      selected bin, across all samples. Produced by aggregate_dastool_summary.py.
+      Only present when alternative_binning: false (DAS_Tool consensus branch).
+    plot_type: "table"
+    pconfig:
+      id: "dastool_summary_table"
+      title: "DAS_Tool bin selection"
+      col1_header: "Sample"
+    headers:
+      bin:
+        title: "Bin"
+      bin_set:
+        title: "Binner(s) of origin"
+      bin_score:
+        title: "DAS_Tool score"
+        min: 0
+        max: 1
+        format: "{:.2f}"
+      SCG_completeness:
+        title: "SCG completeness (%)"
+        min: 0
+        max: 100
+        format: "{:.1f}"
+      SCG_redundancy:
+        title: "SCG redundancy (%)"
+        min: 0
+        format: "{:.1f}"
+
+  gtdbtk_summary:
+    id: "gtdbtk_summary"
+    section_name: "GTDB-Tk Classification Detail"
+    description: >
+      Per-MAG classification method and any unusual-genome warnings from
+      GTDB-Tk — detail not carried into the MAG Catalogue table above.
+      Produced by filter_gtdbtk_summary_for_multiqc.py.
+    plot_type: "table"
+    pconfig:
+      id: "gtdbtk_summary_table"
+      title: "GTDB-Tk classification detail"
+      col1_header: "Genome"
+    headers:
+      classification:
+        title: "Classification"
+      classification_method:
+        title: "Method"
+      note:
+        title: "Note"
+      warnings:
+        title: "Warnings"
+
   benchmark_summary:
     id: "benchmark_summary"
     section_name: "Resource Usage (Benchmarks)"
@@ -84,5 +185,11 @@ custom_data:
         format: "{:.1f}"
 
 sp:
+  mag_summary:
+    fn: "MAG_Representative_info_parsed.tsv"
+  dastool_summary:
+    fn: "DASTool_binning_summary.tsv"
+  gtdbtk_summary:
+    fn: "gtdbtk_summary_multiqc.tsv"
   benchmark_summary:
     fn: "benchmark_summary.tsv"

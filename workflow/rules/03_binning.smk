@@ -407,6 +407,33 @@ rule DAS_Tool:
         """
 
 
+rule aggregate_dastool_summary:
+    input:
+        summaries = expand(
+            f"{OUTPUT_DIR}/01_Analysis/03_Binning/DAS_Tool/{{contig}}_DASTool/{{contig}}_DASTool_summary.tsv",
+            contig=CONTIGS,
+        )
+    output:
+        summary = f"{OUTPUT_DIR}/02_Results/03_Binning/DASTool_binning_summary.tsv"
+    params:
+        samples = CONTIGS
+    conda:
+        "../envs/Parsing.yaml"
+    log:
+        f"{LOG_DIR}/03_Binning/Das_Tool/aggregate_dastool_summary.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/Das_Tool/aggregate_dastool_summary.tsv"
+    threads: 1
+    localrule: True
+    shell:
+        """
+        python scripts/aggregate_dastool_summary.py \
+        --input {input.summaries} \
+        --samples {params.samples} \
+        --output {output.summary} > {log} 2>&1
+        """
+
+
 ######################### 05 BIN QC ##################################
 
 rule CheckM_QC:
