@@ -147,6 +147,33 @@ custom_data:
       warnings:
         title: "Warnings"
 
+  module_wall_time:
+    id: "module_wall_time"
+    section_name: "Wall Time by Module"
+    description: >
+      Total wall-clock time per pipeline module, summed across every rule and
+      sample in that module. Quick visual spot-check for which stage dominates
+      total run time — see the Resource Usage table below for per-rule detail.
+      Produced by aggregate_benchmarks.py.
+    plot_type: "bargraph"
+    pconfig:
+      id: "module_wall_time_plot"
+      title: "Wall time by module"
+      ylab: "Wall time (min)"
+
+  module_peak_memory:
+    id: "module_peak_memory"
+    section_name: "Peak Memory by Module"
+    description: >
+      Highest single-rule peak memory (RSS) observed within each pipeline
+      module — not summed, since memory isn't additive across rules the way
+      wall time is. Produced by aggregate_benchmarks.py.
+    plot_type: "bargraph"
+    pconfig:
+      id: "module_peak_memory_plot"
+      title: "Peak memory by module"
+      ylab: "Peak memory (GB)"
+
   benchmark_summary:
     id: "benchmark_summary"
     section_name: "Resource Usage (Benchmarks)"
@@ -191,5 +218,9 @@ sp:
     fn: "DASTool_binning_summary.tsv"
   gtdbtk_summary:
     fn: "gtdbtk_summary_multiqc.tsv"
+  module_wall_time:
+    fn: "module_wall_time.tsv"
+  module_peak_memory:
+    fn: "module_peak_memory.tsv"
   benchmark_summary:
     fn: "benchmark_summary.tsv"

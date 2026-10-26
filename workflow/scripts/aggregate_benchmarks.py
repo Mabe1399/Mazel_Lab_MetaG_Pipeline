@@ -94,6 +94,22 @@ def main():
         .sort_values("total_wall_min", ascending=False)
     )
 
+    # Chart-ready files for MultiQC's bargraph custom_data sections (module_usage
+    # was computed above but previously only ever printed to stdout, never reaching
+    # the report). MultiQC's file-based bargraph format needs a header row with the
+    # category in the first column ("Module") — confirmed empirically, since a
+    # header-less two-column file gets transposed into a single stacked bar instead
+    # of one bar per module. Two separate single-metric files rather than one
+    # multi-column file, since wall-time (min) and memory (GB) are different units
+    # and would otherwise stack together meaninglessly.
+    out_dir = Path(args.output).parent
+    module_totals.reset_index()[["module", "total_wall_min"]].rename(
+        columns={"module": "Module"}
+    ).to_csv(out_dir / "module_wall_time.tsv", sep="\t", index=False)
+    module_totals.reset_index()[["module", "peak_memory_gb"]].rename(
+        columns={"module": "Module"}
+    ).to_csv(out_dir / "module_peak_memory.tsv", sep="\t", index=False)
+
     top_wall = (
         df.groupby(["module", "rule"])["wall_time_min"]
         .max()

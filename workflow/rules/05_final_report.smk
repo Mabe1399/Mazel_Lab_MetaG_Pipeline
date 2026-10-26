@@ -123,9 +123,15 @@ rule final_multiqc:
     output:
         report = f"{OUTPUT_DIR}/02_Results/MultiQC_FinalReport/multiqc_report.html"
     params:
-        outdir      = f"{OUTPUT_DIR}/02_Results/MultiQC_FinalReport",
-        bench_dir   = BENCH_DIR,
-        bench_tsv   = f"{OUTPUT_DIR}/02_Results/benchmark_summary.tsv",
+        outdir           = f"{OUTPUT_DIR}/02_Results/MultiQC_FinalReport",
+        bench_dir        = BENCH_DIR,
+        bench_tsv        = f"{OUTPUT_DIR}/02_Results/benchmark_summary.tsv",
+        # Per-module wall-time/peak-memory charts, written alongside bench_tsv by
+        # the same script call below — not declared as separate Snakemake outputs
+        # since this rule already documents (see module NOTE) that MultiQC inputs
+        # are dependency anchors, not an exhaustive file list.
+        wall_time_chart  = f"{OUTPUT_DIR}/02_Results/module_wall_time.tsv",
+        memory_chart     = f"{OUTPUT_DIR}/02_Results/module_peak_memory.tsv",
         search_dirs = lambda wc: " ".join(MULTIQC_SEARCH_DIRS),
         config_file = f"{workflow.basedir}/../config/multiqc_config.yaml",
     conda:
@@ -148,6 +154,8 @@ rule final_multiqc:
         multiqc \
             {params.search_dirs} \
             {params.bench_tsv} \
+            {params.wall_time_chart} \
+            {params.memory_chart} \
             --config {params.config_file} \
             --outdir {params.outdir} \
             --filename multiqc_report.html \
