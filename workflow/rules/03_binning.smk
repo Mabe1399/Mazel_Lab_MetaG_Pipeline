@@ -55,6 +55,19 @@ rule Fairy_sketch:
             -t {threads} > {log} 2>&1
         """
 
+
+rule tool_version_fairy:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/fairy_versions.tsv")
+    conda:
+        "../envs/Fairy.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        printf "fairy\\t%s\\n" "$(fairy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        """
+
 #################### 02 FAIRY COVERAGE #########################
 
 
@@ -295,6 +308,19 @@ rule SemiBin2_binning:
             -t {threads} > {log} 2>&1
         """
 
+
+rule tool_version_semibin2:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/semibin2_versions.tsv")
+    conda:
+        "../envs/SemiBin2.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        printf "semibin2\\t%s\\n" "$(SemiBin2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        """
+
 ######################### 04 BIN SELECTION ###########################
 
 rule metabat2_Scaffolds2Bin:
@@ -460,6 +486,24 @@ rule CheckM_QC:
         """
         checkm2 predict --threads {threads} --input {input.dir} --output-directory {params.outdir} \
             -x fa --database_path {params.db}
+        """
+
+
+rule tool_version_binning:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/binning_versions.tsv")
+    conda:
+        "../envs/Binning.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        {{
+            printf "metabat2\\t%s\\n" "$(metabat2 --help 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "maxbin2\\t%s\\n" "$(run_MaxBin.pl -v 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "das_tool\\t%s\\n" "$(DAS_Tool --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "checkm2\\t%s\\n" "$(checkm2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+        }} > {output.versions}
         """
 
 ######################### 06 BIN QC FILTERING ##################################

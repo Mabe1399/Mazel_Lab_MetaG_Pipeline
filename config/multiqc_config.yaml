@@ -147,6 +147,23 @@ custom_data:
       warnings:
         title: "Warnings"
 
+  tool_versions:
+    id: "tool_versions"
+    section_name: "Tool Versions"
+    description: >
+      Exact installed version of every external tool used in this run, queried
+      from each tool's own conda environment at run time (not just the version
+      range pinned in workflow/envs/*.yaml). Produced by the tool_version_*
+      rules and aggregated by aggregate_tool_versions in the Snakefile.
+    plot_type: "table"
+    pconfig:
+      id: "tool_versions_table"
+      title: "Tool versions"
+      col1_header: "Tool"
+    headers:
+      version:
+        title: "Version"
+
   module_wall_time:
     id: "module_wall_time"
     section_name: "Wall Time by Module"
@@ -218,6 +235,8 @@ sp:
     fn: "DASTool_binning_summary.tsv"
   gtdbtk_summary:
     fn: "gtdbtk_summary_multiqc.tsv"
+  tool_versions:
+    fn: "tool_versions.tsv"
   module_wall_time:
     fn: "module_wall_time.tsv"
   module_peak_memory:

@@ -134,6 +134,10 @@ onstart:
 def get_final_outputs():
     outputs = []
 
+    # Tool-versions report — unconditional, independent of final_report, same
+    # reproducibility value whether or not the full aggregate report is built.
+    outputs.append(f"{OUTPUT_DIR}/02_Results/tool_versions.tsv")
+
     # QC always produces cleaned reads; use the After QC report as the anchor
     if config["steps"].get("QC", True):
         outputs.append(f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/QC_After")
@@ -161,6 +165,47 @@ def get_final_outputs():
 rule all:
     input:
         get_final_outputs()
+
+
+##################################################
+# TOOL VERSIONS — cross-cutting, lives here rather than in any single
+# conditionally-included stage file, since it must exist regardless of which
+# steps are enabled (every "version probe" rule below is defined in whichever
+# stage file already uses that tool's conda env; this just aggregates them).
+##################################################
+
+def _get_tool_version_inputs():
+    files = [
+        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/qc_env_versions.tsv",
+        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/assembly_versions.tsv",
+        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/fairy_versions.tsv",
+        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/binning_versions.tsv",
+    ]
+    if config["steps"].get("QC", True):
+        files += [
+            f"{OUTPUT_DIR}/01_Analysis/ToolVersions/trimmomatic_versions.tsv",
+            f"{OUTPUT_DIR}/01_Analysis/ToolVersions/bowtie2_versions.tsv",
+        ]
+    if config["steps"].get("QC", True) or config["steps"].get("taxonomic_profiling"):
+        files.append(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/kraken2_versions.tsv")
+    if not config["steps"].get("alternative_binning", True):
+        files.append(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/semibin2_versions.tsv")
+    if config["steps"].get("MAGs_Reporting_step"):
+        files.append(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/reporting_versions.tsv")
+    return files
+
+
+rule aggregate_tool_versions:
+    input:
+        _get_tool_version_inputs()
+    output:
+        f"{OUTPUT_DIR}/02_Results/tool_versions.tsv"
+    localrule: True
+    shell:
+        """
+        (printf "tool\\tversion\\n"; cat {input}) > {output}
+        """
+
 
 ##################################################
 # LIFECYCLE HANDLERS

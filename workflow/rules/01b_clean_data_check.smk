@@ -80,3 +80,23 @@ rule check_multiqc:
             -o {output.outdir} \
             {OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/QC_Check > {log} 2>&1
         """
+
+
+# Mirrors 01_quality_control_preprocessing.smk's rule of the same name — the
+# two files are mutually exclusive via the QC steps flag, so no collision risk,
+# but _get_tool_version_inputs() in the Snakefile requires qc_env_versions.tsv
+# unconditionally regardless of which branch is active.
+rule tool_version_qc_env:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/qc_env_versions.tsv")
+    conda:
+        "../envs/QC_env.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        {{
+            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+        }} > {output.versions}
+        """

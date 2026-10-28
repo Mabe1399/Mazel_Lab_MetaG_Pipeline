@@ -43,11 +43,22 @@ jobs:
       - name: Prepare run scaffolding (gitignored outputs + dummy GTDB-Tk db)
         run: |
           mkdir -p test_data/_run/{output,scratch,logs,benchmarks,dummy_gtdb_db}
+          # NOTE: `--config 'steps={"alternative_binning": ...}'` looks like the
+          # obvious way to override this, but Snakemake parses nested --config
+          # dict values with yaml.BaseLoader, which does NOT coerce "true"/"false"
+          # to booleans — the override silently becomes the *string* "false",
+          # which is truthy, so BOTH matrix legs would run alternative_binning:
+          # true. A real YAML file loaded via --configfile does proper boolean
+          # parsing, so we write one here instead.
+          cat > test_data/_run/override.yaml <<EOF
+          steps:
+            alternative_binning: ${{ matrix.alternative_binning }}
+          GTDB_Tk:
+            db: "../test_data/_run/dummy_gtdb_db"
+          EOF
 
       - name: Dry-run DAG (alternative_binning=${{ matrix.alternative_binning }})
         shell: bash -el {0}
         run: |
           cd workflow
-          snakemake -n --configfile ../test_data/config.test.yaml \
-            --config 'GTDB_Tk={"db": "../test_data/_run/dummy_gtdb_db"}' \
-                     'steps={"alternative_binning": ${{ matrix.alternative_binning }}}'
+          snakemake -n --configfile ../test_data/config.test.yaml ../test_data/_run/override.yaml

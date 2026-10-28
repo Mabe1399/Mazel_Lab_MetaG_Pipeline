@@ -179,6 +179,8 @@ Everything is written under `working_dir`, split into two top-level trees:
     completeness, contamination, taxonomy, dereplication cluster), plus an iTOL-ready annotated tree
   - `MultiQC_FinalReport/` — the pipeline-wide report, if `final_report: true`
   - `benchmark_summary.tsv` — wall time / peak memory / CPU time per rule, for spotting bottlenecks
+  - `tool_versions.tsv` — exact installed version of every external tool used in the run (always generated,
+    independent of `final_report`), queried from each tool's own conda env at run time
 
 ## Repository layout
 

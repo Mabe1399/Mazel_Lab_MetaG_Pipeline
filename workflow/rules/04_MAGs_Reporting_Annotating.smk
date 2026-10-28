@@ -286,3 +286,19 @@ rule MAG_Representative_info:
         --drep_dir {input.dRep} \
         --output {output.Summary} > {log} 2>&1
         """
+
+
+rule tool_version_reporting:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/reporting_versions.tsv")
+    conda:
+        "../envs/Reporting.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        {{
+            printf "gtdbtk\\t%s\\n" "$(gtdbtk --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "drep\\t%s\\n" "$(dRep -h 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+        }} > {output.versions}
+        """

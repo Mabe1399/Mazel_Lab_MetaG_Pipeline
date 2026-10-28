@@ -132,3 +132,19 @@ rule Contig_filter:
             -l {params.length_t} \
             -c {params.cov_t} > {log} 2>&1
         """
+
+
+rule tool_version_assembly:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/assembly_versions.tsv")
+    conda:
+        "../envs/Assembly.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        {{
+            printf "spades\\t%s\\n" "$(spades.py --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "quast\\t%s\\n" "$(quast.py --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+        }} > {output.versions}
+        """

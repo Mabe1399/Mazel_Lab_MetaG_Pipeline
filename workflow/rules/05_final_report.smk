@@ -53,6 +53,10 @@ def get_multiqc_inputs(wildcards):
         sample=CONTIGS,
     )
 
+    # Tool versions — unconditional, same as the file itself (see Snakefile's
+    # get_final_outputs()), independent of which optional modules are enabled.
+    inputs["tool_versions"] = f"{OUTPUT_DIR}/02_Results/tool_versions.tsv"
+
     # CheckM2 is always part of the binning pipeline
     inputs["checkm"] = f"{OUTPUT_DIR}/02_Results/03_Binning/CheckM_QC/all_MAGs_stats.tsv"
     # Per-sample quality_report.tsv are temp()'d once Bin_filtering_QC_summary consumes
@@ -97,6 +101,11 @@ def _build_multiqc_dirs():
     dirs += [
         f"{OUTPUT_DIR}/01_Analysis/02_Assembly/Metaquast_QC/",
         f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/",
+        # Top-level 02_Results/ holds tool_versions.tsv (and benchmark_summary.tsv
+        # /module_wall_time.tsv/module_peak_memory.tsv, already passed explicitly
+        # as positional args below, so re-discovering them here is redundant but
+        # harmless — MultiQC dedupes by resolved path).
+        f"{OUTPUT_DIR}/02_Results/",
     ]
     if config["steps"].get("QC", True):
         dirs += [

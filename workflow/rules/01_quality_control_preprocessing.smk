@@ -414,3 +414,68 @@ rule host_filtering:
             -2 {input.R2} \
             -S {params.sam} 2> {log} \
         """
+
+
+################## TOOL VERSIONS #########################
+
+rule tool_version_qc_env:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/qc_env_versions.tsv")
+    conda:
+        "../envs/QC_env.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        {{
+            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+        }} > {output.versions}
+        """
+
+
+rule tool_version_trimmomatic:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/trimmomatic_versions.tsv")
+    conda:
+        "../envs/Trimmomatic.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        printf "trimmomatic\\t%s\\n" "$(trimmomatic -version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        """
+
+
+# Defined here only when 02b_Taxonomic_Profiling.smk isn't ALSO going to be
+# included (it defines the same rule unconditionally when taxonomic_profiling:
+# true, since unlike QC/01b it isn't mutually exclusive with this file — both
+# can be active at once, and Snakemake rejects a rule name defined twice).
+if not config["steps"].get("taxonomic_profiling"):
+    rule tool_version_kraken2:
+        output:
+            versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/kraken2_versions.tsv")
+        conda:
+            "../envs/Kraken2.yaml"
+        localrule: True
+        shell:
+            """
+            mkdir -p $(dirname {output.versions})
+            printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+            """
+
+
+rule tool_version_bowtie2:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/bowtie2_versions.tsv")
+    conda:
+        "../envs/bowtie2_mapping.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        {{
+            printf "bowtie2\\t%s\\n" "$(bowtie2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "samtools\\t%s\\n" "$(samtools --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+        }} > {output.versions}
+        """

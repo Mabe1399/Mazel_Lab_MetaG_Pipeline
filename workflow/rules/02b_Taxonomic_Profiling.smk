@@ -71,3 +71,20 @@ rule parse_kraken2_taxonomic_report:
         f"{BENCH_DIR}/02b_Taxonomic_Profiling/Kraken2/Combined_kraken2_parsing.tsv"
     shell:
         "python3 scripts/Combine_kraken_reports.py -o {output} -i {input} > {log} 2>&1"
+
+
+# Defined here unconditionally (this file only loads when taxonomic_profiling:
+# true) — see 01_quality_control_preprocessing.smk's matching guard for why
+# the two files can't both define this rule when QC and taxonomic_profiling
+# are both enabled.
+rule tool_version_kraken2:
+    output:
+        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/kraken2_versions.tsv")
+    conda:
+        "../envs/Kraken2.yaml"
+    localrule: True
+    shell:
+        """
+        mkdir -p $(dirname {output.versions})
+        printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        """
