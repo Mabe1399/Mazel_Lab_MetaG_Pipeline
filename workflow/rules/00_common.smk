@@ -10,6 +10,7 @@
 # Functions included:
 #           - detect_samples()       : detect sample names from input FASTQ files
 #           - get_excluded_samples() : compute blank/control exclusion list
+#           - glob_fastq()           : glob a path prefix against both .fastq.gz/.fq.gz
 #
 
 
@@ -28,15 +29,29 @@ from snakemake.utils import *
 # FUNCTIONS
 ##################################################
 
-def detect_samples(data_dir, pattern="*.fastq.gz"):
+def glob_fastq(path_prefix):
+    """Glob path_prefix against both '.fastq.gz' and '.fq.gz', merged and sorted.
+
+    path_prefix should already include any wildcard glob characters needed
+    before the extension (e.g. f"{DATA_DIR}/{sample}_L*_R1*").
+    """
+    files = []
+    for ext in ("fastq.gz", "fq.gz"):
+        files.extend(glob.glob(f"{path_prefix}.{ext}"))
+    return sorted(files)
+
+
+def detect_samples(data_dir, patterns=("*.fastq.gz", "*.fq.gz")):
     """Detect unique sample names from FASTQ files in data_dir.
 
     Uses config['sample_pattern'] regex (group 1 = sample name).
     Silently skips files that don't match. Raises ValueError if no samples found.
     """
-    files = glob.glob(os.path.join(data_dir, pattern))
+    files = []
+    for pattern in patterns:
+        files.extend(glob.glob(os.path.join(data_dir, pattern)))
     samples = set()
-    regex = config.get("sample_pattern", r'^(.+?)_R[12].*\.fastq\.gz$')
+    regex = config.get("sample_pattern", r'^(.+?)_R[12].*\.f(?:ast)?q\.gz$')
     for f in files:
         base = os.path.basename(f)
         m = re.match(regex, base)

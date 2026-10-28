@@ -6,9 +6,9 @@
 # DESCRIPTION
 #######################################################
 # MODULE INTERFACE
-#   INPUT:    Raw FASTQ files in DATA_DIR
-#               Multi-lane:       {sample}_L*_R{1,2}*.fastq.gz  (steps: concatenate_lanes: true)
-#               Pre-concatenated: {sample}_R{1,2}*.fastq.gz     (steps: concatenate_lanes: false)
+#   INPUT:    Raw FASTQ files in DATA_DIR (.fastq.gz or .fq.gz)
+#               Multi-lane:       {sample}_L*_R{1,2}*.(fastq|fq).gz  (steps: concatenate_lanes: true)
+#               Pre-concatenated: {sample}_R{1,2}*.(fastq|fq).gz     (steps: concatenate_lanes: false)
 #   OUTPUT:   {OUTPUT_DIR}/00_Data/02_Clean_Data/{sample}_R{1,2}_cleaned.fastq.gz
 #   REQUIRES: —
 #   STEPS KEY: QC
@@ -40,15 +40,15 @@ _CONCATENATE_LANES = config["steps"].get("concatenate_lanes", True)
 def _find_raw_read(wildcards, read):
     """Return the single pre-concatenated FASTQ for a sample/read direction.
 
-    Globs for {sample}_R{read}*.fastq.gz in DATA_DIR.  Raises a clear error
-    when no file is found or when multiple files match (ambiguous).
+    Globs for {sample}_R{read}*.fastq.gz / *.fq.gz in DATA_DIR.  Raises a
+    clear error when no file is found or when multiple files match (ambiguous).
     """
-    pattern = f"{DATA_DIR}/{wildcards.sample}_R{read}*.fastq.gz"
-    files = sorted(glob.glob(pattern))
+    pattern = f"{DATA_DIR}/{wildcards.sample}_R{read}*"
+    files = glob_fastq(pattern)
     if not files:
         raise FileNotFoundError(
             f"concatenate_lanes: false — no R{read} file found for sample "
-            f"'{wildcards.sample}' matching {pattern}"
+            f"'{wildcards.sample}' matching {pattern}.{{fastq,fq}}.gz"
         )
     if len(files) > 1:
         raise ValueError(
@@ -66,8 +66,8 @@ def _find_raw_read(wildcards, read):
 if _CONCATENATE_LANES:
     rule concat_lanes:
         input:
-            R1s=lambda wc: sorted(glob.glob(f"{DATA_DIR}/{wc.sample}_L*_R1*.fastq.gz")),
-            R2s=lambda wc: sorted(glob.glob(f"{DATA_DIR}/{wc.sample}_L*_R2*.fastq.gz")),
+            R1s=lambda wc: glob_fastq(f"{DATA_DIR}/{wc.sample}_L*_R1*"),
+            R2s=lambda wc: glob_fastq(f"{DATA_DIR}/{wc.sample}_L*_R2*"),
         output:
             # Not temp(): regenerating this after a later invocation finds it
             # missing bumps its mtime, which — since Raw_Trimming/host_filtering

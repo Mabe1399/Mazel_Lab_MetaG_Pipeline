@@ -24,7 +24,7 @@ benchmark_dir: ../test_data/_run/benchmarks
 #########################################################
 # SAMPLE DETECTION
 #########################################################
-sample_pattern: '^(.+?)_R[12].*\.fastq\.gz$'
+sample_pattern: '^(.+?)_R[12].*\.f(?:ast)?q\.gz$'
 
 #########################################################
 # BLANK / CONTROL SAMPLE EXCLUSION

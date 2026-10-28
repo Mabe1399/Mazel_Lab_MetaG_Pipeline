@@ -94,7 +94,7 @@ input_dir:   /path/to/raw/fastqs          # or pre-cleaned fastqs, if steps.QC: 
 log_dir:     /path/to/logs
 benchmark_dir: /path/to/benchmarks
 
-sample_pattern: '^(Pl\d+_[A-Z]\d+)_.*$'   # regex; group 1 = sample name, applied to every *.fastq.gz
+sample_pattern: '^(Pl\d+_[A-Z]\d+)_.*$'   # regex; group 1 = sample name, applied to every *.fastq.gz / *.fq.gz
 
 steps:
   QC: true                    # false = skip straight to assembly on pre-cleaned reads
