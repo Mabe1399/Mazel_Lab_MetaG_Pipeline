@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 # Author: Matias Becker Burgos (Matias.BeckerBurgos@unil.ch)
 # 
-# Usage: python parse_gtdbtk_to_itol.py --summary gtdbtk_classify_output --metadata metadata_file --config config.yaml --outdir output_itol_dir
+# Usage: python parse_gtdbtk_to_itol.py --summary gtdbtk_classify_output --metadata metadata_file \
+#            --col-host Host_species --col-sample-id Glomus_ID --split-criteria _DASTool_ \
+#            --host-colors '{"Apodemus ilex": "#ffe6a7"}' --outdir output_itol_dir
+#
+# Column names, split string and host colours come from the run's config (DATA_VARIABLES and
+# host_colors), passed in by the parse_gtdbtk_summary_to_iTOL rule.
 
 # Output file: leaf_genus_gtdb_to_iTOL_Phylum_strip_labels.txt
 # Output file: leaf_genus_gtdb_to_iTOL_Genus_strip_colors.txt
@@ -9,7 +14,7 @@
 
 
 import pandas as pd
-import yaml
+import json
 from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -19,7 +24,10 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--metadata", required=True)
 parser.add_argument("--summary", required=True)
-parser.add_argument("--config", required=True)
+parser.add_argument("--col-host", required=True, help="metadata column with the host species")
+parser.add_argument("--col-sample-id", required=True, help="metadata column with the sample IDs")
+parser.add_argument("--split-criteria", required=True, help="string splitting user_genome into sample ID and bin")
+parser.add_argument("--host-colors", default="{}", help="JSON object mapping host species to colours")
 parser.add_argument("--outdir", required=True)
 args = parser.parse_args()
 
@@ -30,14 +38,16 @@ else:
 
 gtdb_summary = pd.read_csv(args.summary, sep="\t")
 
-with open(args.config) as f:
-    cfg = yaml.safe_load(f)
+HOST_COLUMN_NAME = args.col_host
+SPLIT_CRITERIA = args.split_criteria
+SAMPLE_ID_COL = args.col_sample_id
 
-HOST_COLUMN_NAME = cfg["DATA_VARIABLES"]["col_host"]
-SPLIT_CRITERIA = cfg["DATA_VARIABLES"]["split_criteria"]
-SAMPLE_ID_COL = cfg["DATA_VARIABLES"]["col_sample_id"]
+HOST_COLORS = json.loads(args.host_colors)
 
-HOST_COLORS = cfg.get("host_colors", {})
+for col in (HOST_COLUMN_NAME, SAMPLE_ID_COL):
+    if col not in metadata.columns:
+        raise SystemExit(f"Column '{col}' not found in metadata {args.metadata}; "
+                         f"check DATA_VARIABLES in the config. Available: {', '.join(metadata.columns)}")
 
 #########################################################
 

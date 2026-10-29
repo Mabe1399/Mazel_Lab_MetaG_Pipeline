@@ -24,6 +24,8 @@
 # 04: Dereplication (dRep)
 # 05: Reporting Summary
 
+import json   # host_colors handed to the iTOL parser as a JSON string
+
 
 ##################################################
 # RULES
@@ -166,8 +168,13 @@ rule parse_gtdbtk_summary_to_iTOL:
     output:
         dir = directory(f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/iTOL_visualisation/Annotation_files")
     params:
+        # Taken from the run's config (pipeline defaults merged with any --configfile),
+        # not from the pipeline's own config/config.yaml
         metadata= config["DATA_VARIABLES"]["metadata_path"],
-        config= "../config/config.yaml"
+        col_host= config["DATA_VARIABLES"]["col_host"],
+        col_sample_id= config["DATA_VARIABLES"]["col_sample_id"],
+        split_criteria= config["DATA_VARIABLES"]["split_criteria"],
+        host_colors= json.dumps(config.get("host_colors", {}))
     log:
         f"{LOG_DIR}/04_MAGs_Reporting_Annotating/iTOL_visualisation/iTOL_Annotation_files.log"
     benchmark:
@@ -178,9 +185,12 @@ rule parse_gtdbtk_summary_to_iTOL:
     localrule: True
     shell:
         """
-        python3 scripts/parse_gtdbtk_to_itol.py --metadata {params.metadata} \
+        python3 scripts/parse_gtdbtk_to_itol.py --metadata {params.metadata:q} \
         --summary {input.gtdb_summary} \
-        --config {params.config} \
+        --col-host {params.col_host:q} \
+        --col-sample-id {params.col_sample_id:q} \
+        --split-criteria {params.split_criteria:q} \
+        --host-colors {params.host_colors:q} \
         --outdir {output.dir} > {log} 2>&1
         """
 
