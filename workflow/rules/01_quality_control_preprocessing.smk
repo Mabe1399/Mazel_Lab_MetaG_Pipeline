@@ -201,10 +201,11 @@ rule Raw_Trimming:
         runtime = config["trimmomatic"]["runtime_min"],
         cpus_per_task = config["trimmomatic"]["threads"]
     shell:
-        "trimmomatic PE -phred33 -summary {log} -threads {threads} {input.R1} {input.R2} \
+        # Trimmomatic's stderr (run header + read-pair counts) is what MultiQC parses
+        "trimmomatic PE -phred33 -threads {threads} {input.R1} {input.R2} \
         {output.R1_paired} {output.R1_unpaired} {output.R2_paired} {output.R2_unpaired} \
         ILLUMINACLIP:{params.nextera}:2:30:10 \
-        LEADING:{params.leading} TRAILING:{params.trailing} MINLEN:{params.min_length}"
+        LEADING:{params.leading} TRAILING:{params.trailing} MINLEN:{params.min_length} 2> {log}"
 
 ############### 04 AFTER QC #####################################
 
@@ -284,13 +285,14 @@ rule build_Kraken2_db:
         f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/kraken2_db.tsv"
     shell:
         """
+        exec > {log} 2>&1
         mkdir -p $TMPDIR/kraken2_db
         kraken2-build --download-taxonomy --db $TMPDIR/kraken2_db
         kraken2-build --download-library bacteria --db $TMPDIR/kraken2_db
         kraken2-build --download-library human --db $TMPDIR/kraken2_db
-        echo "Adding files: ${params.host_list}" >> {log}
-        for f in ${params.host_list}; do
-            echo "File: $f" >> {log}
+        echo "Adding files: {params.host_list}"
+        for f in {params.host_list}; do
+            echo "File: $f"
             kraken2-build --add-to-library "$f" --db $TMPDIR/kraken2_db
         done
         kraken2-build --build --threads {threads} --db $TMPDIR/kraken2_db

@@ -79,7 +79,7 @@ rule Metaquast_QC:
             {input} \
             -t {threads} \
 	    --max-ref-num 0 \
-            -o {output}
+            -o {output} > {log} 2>&1
         """
 
 rule Quast_multiqc:
@@ -103,7 +103,7 @@ rule Quast_multiqc:
         mkdir -p {OUTPUT_DIR}/02_Results/02_Assembly/Metaquast_QC
         multiqc {OUTPUT_DIR}/01_Analysis/02_Assembly/Metaquast_QC \
             --outdir {OUTPUT_DIR}/02_Results/02_Assembly/Metaquast_QC \
-            --force
+            --force > {log} 2>&1
         """
     
 ################ 03 FILTER CONTIG ############################

@@ -162,7 +162,7 @@ rule CheckM_QC:
     shell:
         """
         checkm2 predict --threads {threads} --input {input.dir} --output-directory {params.outdir} \
-            -x fa --database_path {params.db}
+            -x fa --database_path {params.db} > {log} 2>&1
         """
 
 
@@ -210,5 +210,5 @@ rule Bin_filtering_QC_summary:
         -f {output.filtered_stats} \
         -m {output.filtered_mags} \
         -c {params.completeness} \
-        -e {params.contamination}
+        -e {params.contamination} > {log} 2>&1
         """

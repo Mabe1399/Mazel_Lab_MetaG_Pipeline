@@ -210,7 +210,7 @@ rule MaxBin2:
     conda:
         "../envs/Binning.yaml"
     benchmark:
-        f"{BENCH_DIR}/03_Binning/MaxBin2/Binning/{{contig}}_maxbin2.log"
+        f"{BENCH_DIR}/03_Binning/MaxBin2/Binning/{{contig}}_maxbin2.tsv"
     log:
         f"{LOG_DIR}/03_Binning/MaxBin2/Binning/{{contig}}_maxbin2.log"
     resources:
@@ -227,11 +227,12 @@ rule MaxBin2:
         -abund_list {input.abund_list} \
         -out {params.basename} 2> {log} 1>&2
 
-        # Normalize MaxBin2 bin names
+        # Normalize MaxBin2 bin names (<contig>_maxbin2.bin.001.fasta -> <contig>_maxbin2.bin.1.fa)
         for f in {output.bins}/*.fasta; do
+            [ -e "$f" ] || continue
             bn=$(basename "$f" .fasta)
             id=$(echo "$bn" | awk -F. '{{printf "%d", $NF}}')
-            mv "$f" "{output.bins}/{{wc.contig}}_maxbin2.bin.${{id}}.fa"
+            mv "$f" "{output.bins}/{wildcards.contig}_maxbin2.bin.${{id}}.fa"
         done
 
         """
@@ -336,10 +337,10 @@ rule metabat2_Scaffolds2Bin:
         f"{LOG_DIR}/03_Binning/MetaBat2/scaffolds2bin/{{contig}}_Scaffolds2Bin.log"
     shell:
         """
-            Fasta_to_Contig2Bin.sh \
-            -i {input.bins} \
-            -e fa \
-            | awk 'BEGIN{{OFS="\t"}} {{print $1,$NF}}' > {output.scaffolds2bin}
+        Fasta_to_Contig2Bin.sh \
+        -i {input.bins} \
+        -e fa \
+        2> {log} | awk 'BEGIN{{OFS="\t"}} {{print $1,$NF}}' > {output.scaffolds2bin}
         """
 
 
@@ -356,9 +357,10 @@ rule maxbin2_Scaffolds2Bin:
         f"{LOG_DIR}/03_Binning/MaxBin2/scaffolds2bin/{{contig}}_Scaffolds2Bin.log"
     shell:
         """
+        # MaxBin2 rule renames its bins to .fa
         Fasta_to_Contig2Bin.sh \
         -i {input.bins} \
-        -e fasta > {output.scaffolds2bin}
+        -e fa > {output.scaffolds2bin} 2> {log}
         """
 
 
@@ -382,7 +384,7 @@ rule semibin2_Scaffolds2Bin:
         Fasta_to_Contig2Bin.sh \
         -i {input.bins}/output_bins \
         -e fa \
-        | awk 'BEGIN{{OFS="\t"}} {{print $1,$NF}}' > {output.scaffolds2bin} 2> {log}
+        2> {log} | awk 'BEGIN{{OFS="\t"}} {{print $1,$NF}}' > {output.scaffolds2bin}
         """
 
 
@@ -422,7 +424,7 @@ rule DAS_Tool:
         --write_bins \
         --write_bin_evals \
         --threads {threads} \
-        --search_engine {params.search_engine}
+        --search_engine {params.search_engine} > {log} 2>&1
 
         # Rename all bins to consistent pattern DAS_Tool as inconsistent bin naming
         i=1
@@ -485,7 +487,7 @@ rule CheckM_QC:
     shell:
         """
         checkm2 predict --threads {threads} --input {input.dir} --output-directory {params.outdir} \
-            -x fa --database_path {params.db}
+            -x fa --database_path {params.db} > {log} 2>&1
         """
 
 
@@ -533,5 +535,5 @@ rule Bin_filtering_QC_summary:
         -f {output.filtered_stats} \
         -m {output.filtered_mags} \
         -c {params.completeness} \
-        -e {params.contamination} >> {log}
+        -e {params.contamination} > {log} 2>&1
         """

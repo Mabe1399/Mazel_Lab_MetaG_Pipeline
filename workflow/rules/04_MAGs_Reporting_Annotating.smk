@@ -234,7 +234,7 @@ rule parse_dRep_genomeInfo:
         """
         python3 scripts/parse_dRep_genomeInfo.py \
         --CheckM_summary {input.CheckM_summary} \
-        --output {output.GenomeInfo}
+        --output {output.GenomeInfo} > {log} 2>&1
         """
 
 
