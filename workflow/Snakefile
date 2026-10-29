@@ -129,7 +129,8 @@ onstart:
 #   Kraken2 combined: f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv"
 #   Assembly multiqc: f"{OUTPUT_DIR}/02_Results/02_Assembly/Metaquast_QC/multiqc_report.html"
 #   MAG info:         f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv"
-#   Final report:     f"{OUTPUT_DIR}/02_Results/MultiQC_FinalReport/multiqc_report.html"
+#   iTOL tree:        f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/iTOL_visualisation/gtdbtk.bac120.iTOL.MAGs.tree"
+#   Final report:    f"{OUTPUT_DIR}/02_Results/MultiQC_FinalReport/multiqc_report.html"
 
 def get_final_outputs():
     outputs = []
@@ -153,6 +154,17 @@ def get_final_outputs():
         outputs.append(
             f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv"
         )
+
+        # iTOL tree (gtdbtk infer + decorate: one tree over all HQ MAGs, GTDB_Tk resources),
+        # plus the per-MAG annotation strips, which need sample metadata to label hosts
+        if config["steps"].get("iTOL_visualisation", True):
+            outputs.append(
+                f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/iTOL_visualisation/gtdbtk.bac120.iTOL.MAGs.tree"
+            )
+            if config.get("DATA_VARIABLES", {}).get("metadata_path"):
+                outputs.append(
+                    f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/iTOL_visualisation/Annotation_files"
+                )
 
     if config["steps"].get("final_report"):
         outputs.append(

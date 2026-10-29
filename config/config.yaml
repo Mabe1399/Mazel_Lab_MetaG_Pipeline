@@ -66,6 +66,7 @@ steps:
   taxonomic_profiling: false        # Include Kraken2 taxonomic profiling
   alternative_binning: false        # false = MetaBAT2+MaxBin2+SemiBin2+DAS_Tool; true = standalone MetaBAT2 (03b)
   MAGs_Reporting_step: true         # Include MAGs reporting & annotation (04)
+  iTOL_visualisation: true          # With MAGs_Reporting_step: GTDB-Tk tree of all HQ MAGs + iTOL annotation files (needs DATA_VARIABLES.metadata_path for host strips)
   final_report: false               # Generate a pipeline-wide MultiQC final report
 
 #########################################################

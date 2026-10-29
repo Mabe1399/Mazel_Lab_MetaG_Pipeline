@@ -102,6 +102,7 @@ steps:
   taxonomic_profiling: false   # Kraken2 profiling of trimmed reads
   alternative_binning: false   # false = MetaBAT2+MaxBin2+SemiBin2+DAS_Tool; true = standalone MetaBAT2
   MAGs_Reporting_step: true    # GTDB-Tk classification + dRep dereplication + MAG summary table
+  iTOL_visualisation: true     # GTDB-Tk tree of all HQ MAGs + iTOL annotation files (with MAGs_Reporting_step)
   final_report: false          # aggregate everything into one MultiQC report
 ```
 

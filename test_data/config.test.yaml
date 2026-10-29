@@ -48,6 +48,7 @@ steps:
                                      # for a real 2-sample execution test, or expand test_data/reads/
                                      # to >=5 samples to exercise this branch for real.
   MAGs_Reporting_step: true         # GTDB-Tk + dRep + MAG summary table
+  iTOL_visualisation: true          # GTDB-Tk tree + iTOL annotation files
   final_report: true                # also exercises the checkm2 MultiQC module
 
 #########################################################
