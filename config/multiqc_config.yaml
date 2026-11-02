@@ -31,6 +31,7 @@ module_order:
   - bowtie2
   - quast
   - checkm2
+  - gtdbtk   # native module (MultiQC >= 1.26), from gtdb_classify_summary/gtdbtk.bac120.summary.tsv
 
 # Report-level settings
 report_header_info:
@@ -229,6 +230,13 @@ custom_data:
         format: "{:.1f}"
 
 sp:
+  # 02_Results/ is searched recursively, and all_MAGs_stats.tsv / filtered_MAGs_stats.tsv (aggregate_checkm.py)
+  # carry the CheckM2 header behind a 'sample' column: restrict the native checkm2 module to CheckM2's
+  # own per-sample reports, or it parses every MAG three times
+  checkm2:
+    fn: "quality_report.tsv"
+    contents: "Name	Completeness	Contamination	Completeness_Model_Used	Translation_Table_Used"
+    num_lines: 10
   mag_summary:
     fn: "MAG_Representative_info_parsed.tsv"
   dastool_summary:
