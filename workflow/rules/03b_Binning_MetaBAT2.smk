@@ -72,7 +72,7 @@ rule tool_version_fairy:
     shell:
         """
         mkdir -p $(dirname {output.versions})
-        printf "fairy\\t%s\\n" "$(fairy --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        printf "fairy\\t%s\\n" "$(fairy --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
         """
 
 #################### 02 FAIRY COVERAGE ####################
@@ -176,10 +176,10 @@ rule tool_version_binning:
         """
         mkdir -p $(dirname {output.versions})
         {{
-            printf "metabat2\\t%s\\n" "$(metabat2 --help 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "maxbin2\\t%s\\n" "$(run_MaxBin.pl -v 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "das_tool\\t%s\\n" "$(DAS_Tool --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "checkm2\\t%s\\n" "$(checkm2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "metabat2\\t%s\\n" "$(metabat2 --help 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "maxbin2\\t%s\\n" "$(run_MaxBin.pl -v 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "das_tool\\t%s\\n" "$(DAS_Tool --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "checkm2\\t%s\\n" "$(checkm2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
         }} > {output.versions}
         """
 

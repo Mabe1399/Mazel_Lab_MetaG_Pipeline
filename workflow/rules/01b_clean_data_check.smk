@@ -96,7 +96,7 @@ rule tool_version_qc_env:
         """
         mkdir -p $(dirname {output.versions})
         {{
-            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
         }} > {output.versions}
         """

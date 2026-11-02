@@ -86,5 +86,5 @@ rule tool_version_kraken2:
     shell:
         """
         mkdir -p $(dirname {output.versions})
-        printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
         """

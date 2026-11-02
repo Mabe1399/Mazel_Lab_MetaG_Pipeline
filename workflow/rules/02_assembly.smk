@@ -144,7 +144,7 @@ rule tool_version_assembly:
         """
         mkdir -p $(dirname {output.versions})
         {{
-            printf "spades\\t%s\\n" "$(spades.py --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "quast\\t%s\\n" "$(quast.py --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "spades\\t%s\\n" "$(spades.py --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "quast\\t%s\\n" "$(quast.py --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
         }} > {output.versions}
         """

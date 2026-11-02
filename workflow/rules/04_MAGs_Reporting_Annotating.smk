@@ -308,7 +308,7 @@ rule tool_version_reporting:
         """
         mkdir -p $(dirname {output.versions})
         {{
-            printf "gtdbtk\\t%s\\n" "$(gtdbtk --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "drep\\t%s\\n" "$(dRep -h 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "gtdbtk\\t%s\\n" "$(gtdbtk --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "drep\\t%s\\n" "$(dRep -h 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
         }} > {output.versions}
         """

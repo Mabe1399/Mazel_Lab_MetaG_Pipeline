@@ -430,8 +430,8 @@ rule tool_version_qc_env:
         """
         mkdir -p $(dirname {output.versions})
         {{
-            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
         }} > {output.versions}
         """
 
@@ -445,7 +445,7 @@ rule tool_version_trimmomatic:
     shell:
         """
         mkdir -p $(dirname {output.versions})
-        printf "trimmomatic\\t%s\\n" "$(trimmomatic -version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+        printf "trimmomatic\\t%s\\n" "$(trimmomatic -version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
         """
 
 
@@ -463,10 +463,12 @@ if not config["steps"].get("taxonomic_profiling"):
         shell:
             """
             mkdir -p $(dirname {output.versions})
-            printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
+            printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
             """
 
 
+# grep -a in every probe: bowtie2's version banner contains non-text bytes, and without -a grep
+# prints "Binary file (standard input) matches" instead of the version.
 rule tool_version_bowtie2:
     output:
         versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/bowtie2_versions.tsv")
@@ -477,7 +479,7 @@ rule tool_version_bowtie2:
         """
         mkdir -p $(dirname {output.versions})
         {{
-            printf "bowtie2\\t%s\\n" "$(bowtie2 --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "samtools\\t%s\\n" "$(samtools --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "bowtie2\\t%s\\n" "$(bowtie2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
+            printf "samtools\\t%s\\n" "$(samtools --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
         }} > {output.versions}
         """
