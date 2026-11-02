@@ -11,11 +11,10 @@
 #   INPUT:       HIGHQC_BINS_DIR (from 03_binning.smk or 03b_Binning_MetaBAT2.smk,
 #                depending on the alternative_binning steps flag — set once in Snakefile)
 #   OUTPUT:      {OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv
-#                {OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/reference_SGBs/  (used by 05a)
+#                {OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/reference_SGBs/  (dRep dereplicated set)
 #   REQUIRES:    03_binning.smk or 03b_Binning_MetaBAT2.smk (HIGHQC_BINS_DIR directory)
 #   STEPS KEY:   MAGs_Reporting_step: true
 #   USES:        CONTIGS (blank samples excluded — same set as binning)
-#   NOTE:        Module 05a (InStrain) depends on this module's dRep outputs.
 
 # Steps included:
 # 01: Taxonomic Classification (GTDB-Tk)
