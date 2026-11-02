@@ -1,6 +1,0 @@
-name: annotation_env
-channels:
- - bioconda
- - conda-forge
-dependencies:
- - prodigal

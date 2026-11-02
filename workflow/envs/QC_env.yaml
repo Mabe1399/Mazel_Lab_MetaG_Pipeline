@@ -1,8 +1,0 @@
-name: QC_env
-channels:
-  - conda-forge
-  - bioconda
-dependencies:
-  - fastqc=0.12.1
-  - multiqc=1.35    # >= 1.26 needed for the native checkm2 / gtdbtk report modules
-  - pandas=3.1.0    # aggregate_benchmarks.py runs in this env (final_multiqc); MultiQC no longer pulls it in
