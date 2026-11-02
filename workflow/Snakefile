@@ -53,6 +53,7 @@ HIGHQC_BINS_DIR = (
 )
 
 include: "rules/00_common.smk"
+include: "rules/00_tool_versions.smk"
 
 SAMPLES = detect_samples(DATA_DIR)
 logger.info(f"Detected {len(SAMPLES)} samples: {', '.join(SAMPLES)}")
@@ -182,24 +183,18 @@ rule all:
 ##################################################
 # TOOL VERSIONS — cross-cutting, lives here rather than in any single
 # conditionally-included stage file, since it must exist regardless of which
-# steps are enabled (every "version probe" rule below is defined in whichever
-# stage file already uses that tool's conda env; this just aggregates them).
+# steps are enabled. One probe rule per conda env, all in
+# rules/00_tool_versions.smk (always included); this requests the probes of the
+# envs the enabled steps use and aggregates them.
 ##################################################
 
 def _get_tool_version_inputs():
+    # Core (QC, Kraken2, assembly, parsing, MultiQC) and Binning (fairy, MetaBAT2,
+    # CheckM2, ...) are used by every configuration.
     files = [
-        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/qc_env_versions.tsv",
-        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/assembly_versions.tsv",
-        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/fairy_versions.tsv",
+        f"{OUTPUT_DIR}/01_Analysis/ToolVersions/core_versions.tsv",
         f"{OUTPUT_DIR}/01_Analysis/ToolVersions/binning_versions.tsv",
     ]
-    if config["steps"].get("QC", True):
-        files += [
-            f"{OUTPUT_DIR}/01_Analysis/ToolVersions/trimmomatic_versions.tsv",
-            f"{OUTPUT_DIR}/01_Analysis/ToolVersions/bowtie2_versions.tsv",
-        ]
-    if config["steps"].get("QC", True) or config["steps"].get("taxonomic_profiling"):
-        files.append(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/kraken2_versions.tsv")
     if not config["steps"].get("alternative_binning", True):
         files.append(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/semibin2_versions.tsv")
     if config["steps"].get("MAGs_Reporting_step"):

@@ -1,3 +1,5 @@
+# SemiBin2 (03, consensus branch only). Kept separate on purpose: pytorch-based, and merging it into
+# Binning downgrades the TensorFlow checkm2 uses (see Binning.yaml).
 name: semibin2_env
 channels:
   - bioconda

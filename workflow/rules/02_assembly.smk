@@ -27,7 +27,7 @@ rule Metaspade_assembly:
         contigs = f"{OUTPUT_DIR}/02_Results/02_Assembly/Metaspade/{{sample}}_contigs.fasta",
         scaffolds = f"{OUTPUT_DIR}/02_Results/02_Assembly/Metaspade/{{sample}}_scaffolds.fasta"
     conda:
-        "../envs/Assembly.yaml"
+        "../envs/Core.yaml"
     params:
         outdir= lambda wc: f"$TMPDIR/{wc.sample}_metaspades"
     log:
@@ -63,7 +63,7 @@ rule Metaquast_QC:
     output:
         temp(directory(f"{OUTPUT_DIR}/01_Analysis/02_Assembly/Metaquast_QC/{{sample}}"))
     conda:
-        "../envs/Assembly.yaml"
+        "../envs/Core.yaml"
     log:
         f"{LOG_DIR}/02_Assembly/MetaQuast/{{sample}}_QC.log"
     benchmark:
@@ -88,7 +88,7 @@ rule Quast_multiqc:
     output:
         f"{OUTPUT_DIR}/02_Results/02_Assembly/Metaquast_QC/multiqc_report.html"
     conda:
-        "../envs/QC_env.yaml"
+        "../envs/Core.yaml"
     log: 
         f"{LOG_DIR}/02_Assembly/MetaQuast/Multi_QC.log"
     benchmark:
@@ -118,7 +118,7 @@ rule Contig_filter:
         f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/{{sample}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
     localrule: True
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     threads: 1
     log:
         f"{LOG_DIR}/02_Assembly/Contig_F/{{sample}}_contigs_Filtering.log"
@@ -131,20 +131,4 @@ rule Contig_filter:
             -o {output} \
             -l {params.length_t} \
             -c {params.cov_t} > {log} 2>&1
-        """
-
-
-rule tool_version_assembly:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/assembly_versions.tsv")
-    conda:
-        "../envs/Assembly.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        {{
-            printf "spades\\t%s\\n" "$(spades.py --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "quast\\t%s\\n" "$(quast.py --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-        }} > {output.versions}
         """

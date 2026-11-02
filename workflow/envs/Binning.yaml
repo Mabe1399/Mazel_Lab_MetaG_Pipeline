@@ -1,8 +1,13 @@
+# Coverage + binning + bin QC (03/03b): fairy, MetaBAT2, MaxBin2, DAS_Tool, CheckM2.
+# Replaces Binning / Fairy (fairy is a standalone binary and resolves alongside; verified for linux-64).
+# SemiBin2 stays in its own env on purpose: merging it pulls in pytorch and downgrades the TensorFlow
+# checkm2 runs on, and alternative_binning: true runs would install torch for nothing.
 name: binning_env
 channels:
  - bioconda
  - conda-forge
 dependencies:
+  - fairy=0.5.8
   - metabat2>=2.15
   - checkm2
   - maxbin2

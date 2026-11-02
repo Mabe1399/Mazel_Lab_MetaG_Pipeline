@@ -126,7 +126,7 @@ rule before_fastqc:
         zip1=f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/QC_Before/{{sample}}_R1_concat_fastqc.zip",
         zip2=f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/QC_Before/{{sample}}_R2_concat_fastqc.zip"
     conda:
-        "../envs/QC_env.yaml"
+        "../envs/Core.yaml"
     threads: config["fastqc"]["threads"]
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/Before_QC/{{sample}}_QC.log"
@@ -152,7 +152,7 @@ rule before_multiqc:
     output:
         outdir = directory(f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/QC_Before")
     conda:
-        "../envs/QC_env.yaml"
+        "../envs/Core.yaml"
     threads: config["multiqc"]["threads"]
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/Before_QC/Multi_QC.log"
@@ -195,7 +195,7 @@ rule Raw_Trimming:
     benchmark:
         f"{BENCH_DIR}/01_QC_Preprocessing/Trimming/{{sample}}_trimmomatic.tsv"
     conda:
-        "../envs/Trimmomatic.yaml"
+        "../envs/Core.yaml"
     resources:
         mem_mb = config["trimmomatic"]["memory_mb"],
         runtime = config["trimmomatic"]["runtime_min"],
@@ -221,7 +221,7 @@ rule After_fastqc:
         zip1=f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/QC_After/{{sample}}_R1_paired_fastqc.zip",
         zip2=f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/QC_After/{{sample}}_R2_paired_fastqc.zip",
     conda:
-        "../envs/QC_env.yaml"
+        "../envs/Core.yaml"
     threads: config["fastqc"]["threads"]
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/After_QC/{{sample}}_QC.log"
@@ -248,7 +248,7 @@ rule After_multiqc:
     output:
         outdir = directory(f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/QC_After")
     conda:
-        "../envs/QC_env.yaml"
+        "../envs/Core.yaml"
     threads: config["multiqc"]["threads"]
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/After_QC/Multi_QC.log"
@@ -273,7 +273,7 @@ rule build_Kraken2_db:
         host_list=lambda wildcards: " ".join(config["kraken2_db"]["refseq"])
     threads: config["kraken2_db"]["threads"]
     conda:
-        "../envs/Kraken2.yaml"
+        "../envs/Core.yaml"
     resources:
         mem_mb = config["kraken2_db"]["memory_mb"],
         runtime = config["kraken2_db"]["runtime_min"],
@@ -311,7 +311,7 @@ rule run_kraken2:
         tab=temp(f"{SCRATCH_DIR}/Kraken2/{{sample}}_kraken2.out"),
         rep=temp(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2.report")
     conda:
-        "../envs/Kraken2.yaml"
+        "../envs/Core.yaml"
     threads: config["kraken2_run"]["threads"]
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2_run.log"
@@ -337,7 +337,7 @@ rule parse_kraken2_report:
         f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv"
     localrule: True
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     threads: 1
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/Combined_kraken2_parsing.log"
@@ -353,7 +353,7 @@ rule host_indexing:
     output:
         _HOST_INDEX_FILES
     conda:
-        "../envs/bowtie2_mapping.yaml"
+        "../envs/Core.yaml"
     threads: config["host_indexing"]["threads"]
     params:
         refs_seq    = lambda wildcards: " ".join(config["host_indexing"]["Host_refs"]),
@@ -390,7 +390,7 @@ rule host_filtering:
         R1_clean = f"{OUTPUT_DIR}/00_Data/02_Clean_Data/{{sample}}_R1_cleaned.fastq.gz",
         R2_clean = f"{OUTPUT_DIR}/00_Data/02_Clean_Data/{{sample}}_R2_cleaned.fastq.gz"
     conda:
-        "../envs/bowtie2_mapping.yaml"
+        "../envs/Core.yaml"
     threads: config["host_filtering"]["threads"]
     params:
         # Node-local scratch, not SCRATCH_DIR: this SAM file is never read again,
@@ -415,71 +415,4 @@ rule host_filtering:
             -1 {input.R1} \
             -2 {input.R2} \
             -S {params.sam} 2> {log} \
-        """
-
-
-################## TOOL VERSIONS #########################
-
-rule tool_version_qc_env:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/qc_env_versions.tsv")
-    conda:
-        "../envs/QC_env.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        {{
-            printf "fastqc\\t%s\\n" "$(fastqc --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "multiqc\\t%s\\n" "$(multiqc --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-        }} > {output.versions}
-        """
-
-
-rule tool_version_trimmomatic:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/trimmomatic_versions.tsv")
-    conda:
-        "../envs/Trimmomatic.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        printf "trimmomatic\\t%s\\n" "$(trimmomatic -version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
-        """
-
-
-# Defined here only when 02b_Taxonomic_Profiling.smk isn't ALSO going to be
-# included (it defines the same rule unconditionally when taxonomic_profiling:
-# true, since unlike QC/01b it isn't mutually exclusive with this file — both
-# can be active at once, and Snakemake rejects a rule name defined twice).
-if not config["steps"].get("taxonomic_profiling"):
-    rule tool_version_kraken2:
-        output:
-            versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/kraken2_versions.tsv")
-        conda:
-            "../envs/Kraken2.yaml"
-        localrule: True
-        shell:
-            """
-            mkdir -p $(dirname {output.versions})
-            printf "kraken2\\t%s\\n" "$(kraken2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
-            """
-
-
-# grep -a in every probe: bowtie2's version banner contains non-text bytes, and without -a grep
-# prints "Binary file (standard input) matches" instead of the version.
-rule tool_version_bowtie2:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/bowtie2_versions.tsv")
-    conda:
-        "../envs/bowtie2_mapping.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        {{
-            printf "bowtie2\\t%s\\n" "$(bowtie2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "samtools\\t%s\\n" "$(samtools --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-        }} > {output.versions}
         """

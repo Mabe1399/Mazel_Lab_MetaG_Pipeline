@@ -179,7 +179,7 @@ rule parse_gtdbtk_summary_to_iTOL:
     benchmark:
         f"{BENCH_DIR}/04_MAGs_Reporting_Annotating/iTOL_visualisation/iTOL_Annotation_files.tsv"
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     threads: 1
     localrule: True
     shell:
@@ -200,7 +200,7 @@ rule filter_gtdbtk_for_multiqc:
     output:
         filtered = f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/gtdbtk_summary_multiqc.tsv"
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     log:
         f"{LOG_DIR}/04_MAGs_Reporting_Annotating/filter_gtdbtk_for_multiqc.log"
     benchmark:
@@ -222,7 +222,7 @@ rule parse_dRep_genomeInfo:
     output:
         GenomeInfo = temp(f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/GenomeInfo_dRep.csv")
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     log:
         f"{LOG_DIR}/04_MAGs_Reporting_Annotating/parse_dRep_genomeInfo/parse_dRep_genomeInfo.log"
     benchmark:
@@ -280,7 +280,7 @@ rule MAG_Representative_info:
     output:
         Summary= f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv"
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     log:
         f"{LOG_DIR}/04_MAGs_Reporting_Annotating/MAG_Representative_info.log"
     benchmark:
@@ -294,20 +294,4 @@ rule MAG_Representative_info:
         --GTDB_Tk_summary {input.GTDB_Tk} \
         --drep_dir {input.dRep} \
         --output {output.Summary} > {log} 2>&1
-        """
-
-
-rule tool_version_reporting:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/reporting_versions.tsv")
-    conda:
-        "../envs/Reporting.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        {{
-            printf "gtdbtk\\t%s\\n" "$(gtdbtk --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "drep\\t%s\\n" "$(dRep -h 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-        }} > {output.versions}
         """

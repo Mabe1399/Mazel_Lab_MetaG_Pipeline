@@ -1,3 +1,5 @@
+# MAG classification + dereplication (04): GTDB-Tk, dRep. Unchanged by the env grouping.
+# pandas stays pinned to 1.5.3: dRep 3.4.0 predates pandas 2's API removals.
 name: Reporting_env
 channels:
 - conda-forge

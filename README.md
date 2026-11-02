@@ -47,8 +47,8 @@ FastQC + MultiQC sanity check on them before proceeding straight to assembly.
 
 ## Requirements
 
-- [conda](https://docs.conda.io/) or [mamba](https://mamba.readthedocs.io/) (each pipeline stage runs in its
-  own tool-specific conda environment, defined under `workflow/envs/`)
+- [conda](https://docs.conda.io/) or [mamba](https://mamba.readthedocs.io/) (the tools run in four grouped conda
+  environments under `workflow/envs/`: Core, Binning, SemiBin2, Reporting)
 - [Snakemake](https://snakemake.readthedocs.io/) 9.x — install into its own environment:
   ```bash
   conda create -c conda-forge -c bioconda -n snakemake snakemake
@@ -196,7 +196,7 @@ workflow/
   Snakefile               # entry point: config-driven inclusion of the rule modules below
   rules/                  # one file per pipeline stage (01 through 05)
   scripts/                # Python helpers invoked by rules (parsing, aggregation)
-  envs/                   # one conda environment per tool family
+  envs/                   # 4 grouped conda environments (Core, Binning, SemiBin2, Reporting)
 ```
 
 ## Notes

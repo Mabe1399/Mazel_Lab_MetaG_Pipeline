@@ -43,7 +43,7 @@ rule Fairy_sketch:
         sketch_dir = f"{SCRATCH_DIR}/Fairy_Sketch",
         samples = " ".join(CONTIGS),
     conda:
-        "../envs/Fairy.yaml"
+        "../envs/Binning.yaml"
     threads: config["Fairy_sketch"]["threads"]
     log:
         f"{LOG_DIR}/03_Binning/Fairy/sketch.log"
@@ -63,18 +63,6 @@ rule Fairy_sketch:
         """
 
 
-rule tool_version_fairy:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/fairy_versions.tsv")
-    conda:
-        "../envs/Fairy.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        printf "fairy\\t%s\\n" "$(fairy --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)" > {output.versions}
-        """
-
 #################### 02 FAIRY COVERAGE ####################
 
 rule Fairy_coverage_metabat2:
@@ -87,7 +75,7 @@ rule Fairy_coverage_metabat2:
     output:
         depth = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/MetaBat2/Depth_Contig/{{contig}}_depth.txt")
     conda:
-        "../envs/Fairy.yaml"
+        "../envs/Binning.yaml"
     threads: config["Fairy_coverage"]["threads"]
     log:
         f"{LOG_DIR}/03_Binning/Fairy/{{contig}}_coverage.log"
@@ -166,23 +154,6 @@ rule CheckM_QC:
         """
 
 
-rule tool_version_binning:
-    output:
-        versions = temp(f"{OUTPUT_DIR}/01_Analysis/ToolVersions/binning_versions.tsv")
-    conda:
-        "../envs/Binning.yaml"
-    localrule: True
-    shell:
-        """
-        mkdir -p $(dirname {output.versions})
-        {{
-            printf "metabat2\\t%s\\n" "$(metabat2 --help 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "maxbin2\\t%s\\n" "$(run_MaxBin.pl -v 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "das_tool\\t%s\\n" "$(DAS_Tool --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-            printf "checkm2\\t%s\\n" "$(checkm2 --version 2>&1 | grep -aoE '[0-9]+\\.[0-9]+(\\.[0-9]+)?' | head -1 || echo unknown)"
-        }} > {output.versions}
-        """
-
 ######################### 05 BIN QC FILTERING ##################################
 
 rule Bin_filtering_QC_summary:
@@ -194,7 +165,7 @@ rule Bin_filtering_QC_summary:
         filtered_stats= f"{OUTPUT_DIR}/02_Results/03_Binning/CheckM_QC/filtered_MAGs_stats.tsv",
         filtered_mags= directory(f"{OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins_MetaBAT2/")
     conda:
-        "../envs/Parsing.yaml"
+        "../envs/Core.yaml"
     log:
         f"{LOG_DIR}/03_Binning/CheckM/aggregate_checkm.log"
     threads: 1

@@ -144,7 +144,7 @@ rule final_multiqc:
         search_dirs = lambda wc: " ".join(MULTIQC_SEARCH_DIRS),
         config_file = f"{workflow.basedir}/../config/multiqc_config.yaml",
     conda:
-        "../envs/QC_env.yaml"
+        "../envs/Core.yaml"
     log:
         f"{LOG_DIR}/06_FinalReport/final_multiqc.log"
     benchmark:
