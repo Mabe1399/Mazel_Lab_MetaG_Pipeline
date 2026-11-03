@@ -228,13 +228,40 @@ rule MaxBin2:
 
 ######################### 03C SEMIBIN2 ################################
 
-rule Fairy_coverage_aemb:
+# SemiBin2 reads abundances per contig half: for every contig it looks up <contig>_1 and
+# <contig>_2 in each -a file (generate_cov_from_abundances), and raises a KeyError if they
+# are missing. Fairy is therefore run on SemiBin2's own split of the contigs, not on the
+# contigs themselves. -m 0 keeps every contig (they are already length-filtered), so the
+# halves exist for whatever length cutoff SemiBin2 applies internally.
+rule SemiBin2_split_contigs:
     input:
-        sketches = expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS),
         contig = (
             f"{OUTPUT_DIR}/02_Results/02_Assembly/Contig_Filtering/"
             f"{{contig}}_min{config['Contig_filter']['length_threshold']}_contigs.fasta"
         )
+    output:
+        split = temp(f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Split_contigs/{{contig}}_split.fna")
+    params:
+        tmp_dir = lambda wc: f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Split_contigs/{wc.contig}_tmp"
+    conda:
+        "../envs/SemiBin2.yaml"
+    log:
+        f"{LOG_DIR}/03_Binning/SemiBin2/Split_contigs/{{contig}}_split.log"
+    benchmark:
+        f"{BENCH_DIR}/03_Binning/SemiBin2/Split_contigs/{{contig}}_split.tsv"
+    shell:
+        """
+        SemiBin2 split_contigs -i {input.contig} -o {params.tmp_dir} -m 0 > {log} 2>&1
+        gunzip -c {params.tmp_dir}/split_contigs.fna.gz > {output.split}
+        rm -rf {params.tmp_dir}
+        """
+
+
+rule Fairy_coverage_aemb:
+    input:
+        sketches = expand(f"{SCRATCH_DIR}/Fairy_Sketch/{{sample}}.paired.bcsp", sample=CONTIGS),
+        # Split contigs (<contig>_1/_2), see SemiBin2_split_contigs
+        contig = f"{OUTPUT_DIR}/01_Analysis/03_Binning/SemiBin2/Split_contigs/{{contig}}_split.fna"
     output:
         # One aemb file per sample: fairy coverage --aemb-format only produces a true
         # single-column-per-sample file when given one sketch at a time (confirmed —
