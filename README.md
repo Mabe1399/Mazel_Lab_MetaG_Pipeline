@@ -11,7 +11,7 @@ a single aggregated MultiQC report tying it all together.
 
 ## Workflow overview
 
-![Metagenomic pipeline workflow diagram](docs/workflow_diagram.png)
+![Metagenomic pipeline workflow diagram](docs/Metagenomic_Pipeline_Workflow.png)
 
 The pipeline runs in four stages, each its own Snakemake module under `workflow/rules/`:
 
