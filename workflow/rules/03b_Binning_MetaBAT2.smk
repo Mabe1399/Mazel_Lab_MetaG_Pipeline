@@ -149,7 +149,7 @@ rule CheckM_QC:
         cpus_per_task = config["CheckM"]["threads"]
     shell:
         """
-        checkm2 predict --threads {threads} --input {input.dir} --output-directory {params.outdir} \
+        checkm2 predict --force --threads {threads} --input {input.dir} --output-directory {params.outdir} \
             -x fa --database_path {params.db} > {log} 2>&1
         """
 
