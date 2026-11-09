@@ -16,6 +16,10 @@ development — not a substitute for a real pilot run.
 - `test_metadata.tsv` — minimal 2-row metadata file for the iTOL-annotation step
   (module 04), matching `config.test.yaml`'s `DATA_VARIABLES` column names.
 - `config.test.yaml` — a ready-to-run config wired to this test data.
+- `contigs/F10_subset_min1500_contigs.fasta` — 1,094 **real** contigs (4.6 Mb) from the
+  GLOMUS China sample `Glomus_China25_F_10`, for quick checks of the binning-stage
+  steps on a real assembly (see [Test contigs](#test-contigs) below).
+- `make_test_contigs.py` — the script that produced the contig subset (fixed seed).
 
 ## What's deliberately NOT here
 
@@ -46,6 +50,33 @@ snakemake --use-conda --profile ../profile/slurm --configfile ../test_data/confi
 All paths in `config.test.yaml` are relative to `workflow/` (matching the pipeline's
 own convention), so this works unmodified on any clone — only the two database paths
 above need a per-cluster edit.
+
+## Test contigs
+
+`contigs/F10_subset_min1500_contigs.fasta` is a stratified subset of the filtered
+metaSPAdes assembly of `Glomus_China25_F_10` (76,315 contigs, 354 Mb, N50 7.1 kb). It is
+not wired into `config.test.yaml`: the pipeline builds its own contigs from reads, and
+there are no reads for these contigs. Use it to check contig-level steps by hand, e.g.
+`SemiBin2 split_contigs`, `fairy coverage`, or SemiBin2's abundance parsing.
+
+What it keeps from the real assembly:
+- **Real headers** (`NODE_<n>_length_<len>_cov_<cov>`), unchanged and in NODE order.
+- **The length mix.** 24.8% of its bp sit in 1000–2500 bp contigs (23.1% in the source),
+  so SemiBin2 picks the same 2500 bp minimum length and bins 490 of the 1,094 contigs.
+- **Edge cases:** the shortest contig (1,501 bp), contigs of exactly 2,500 and 2,501 bp
+  (either side of SemiBin2's cutoff), odd lengths (unequal halves after splitting), the
+  highest-coverage contig and the lowest/highest-GC contigs.
+
+The full assembly is too large for git (363 MB). To regenerate the subset, put the full
+file in `contigs/` (ignored by `.gitignore`) and run:
+
+```bash
+python3 make_test_contigs.py contigs/Glomus_China25_F_10_min1500_contigs.fasta \
+    contigs/F10_subset_min1500_contigs.fasta
+```
+
+The script is deterministic, prints the stats above, and stops if the subset would change
+SemiBin2's minimum length.
 
 ## Known limitations
 
