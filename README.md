@@ -68,7 +68,9 @@ FastQC + MultiQC sanity check on them before proceeding straight to assembly.
     profiling)
   - Host reference genome(s) in FASTA format, for building the Bowtie2 host-filtering index
   - A [CheckM2](https://github.com/chklovski/CheckM2) DIAMOND reference database (`checkm2 database --download`)
-  - A [GTDB-Tk](https://github.com/Ecogenomics/GTDBTk) reference database (MAG taxonomic classification)
+  - A [GTDB-Tk](https://github.com/Ecogenomics/GTDBTk) reference database (MAG taxonomic classification):
+    GTDB release 232 (`gtdbtk_r232_data.tar.gz`, ~100 GB unpacked), read by the pinned GTDB-Tk 2.8.0.
+    Classification needs ~140 GB of RAM (`GTDB_Tk.memory_mb`)
 - Access to a SLURM cluster is recommended for real datasets — assembly, binning, and GTDB-Tk classification
   are memory- and time-intensive. A `profile/slurm/` Snakemake profile is included; see
   [Running on SLURM](#running-on-slurm).

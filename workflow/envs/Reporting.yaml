@@ -1,10 +1,11 @@
 # MAG classification + dereplication (04): GTDB-Tk, dRep. Unchanged by the env grouping.
+# gtdbtk >= 2.7.0 reads the GTDB release 232 reference package (r232 only; 2.6.x reads r226).
 # pandas stays pinned to 1.5.3: dRep 3.4.0 predates pandas 2's API removals.
 name: Reporting_env
 channels:
 - conda-forge
 - bioconda
 dependencies:
-- gtdbtk=2.6.1
+- gtdbtk=2.8.0
 - drep=3.4.0
 - pandas=1.5.3

@@ -65,12 +65,14 @@ rule gtdb_classify:
 
         mkdir -p {params.tmp}
         
-        # --skip_ani_screen: without it, MAGs that GTDB-Tk names by ANI to a reference skip the
+        # --place_species: without it, MAGs that GTDB-Tk names by ANI to a reference skip the
         # alignment, so they are missing from the bac120 MSA and from the iTOL tree built from it
         # (508 of 2,845 HQ MAGs, every MAG with a GTDB species, in the GLOMUS China pilot).
+        # With it, every MAG is aligned and placed; species still come from the ANI screen.
+        # (GTDB-Tk >= 2.7.0 replaced --skip_ani_screen with this flag.)
         gtdbtk classify_wf --genome_dir {input.filtered_mags} \
         --extension fa \
-        --skip_ani_screen \
+        --place_species \
         --tmpdir {params.tmp} \
         --pplacer_cpus 4 \
         --scratch_dir {params.scratch} \

@@ -237,10 +237,9 @@ Bin_filtering:
 # GTDB-Tk parameters
 GTDB_Tk:
   threads: 32
-  memory_mb: 64000
+  memory_mb: 160000   # GTDB release 232 needs ~140 GB for bacterial placement
   runtime_min: 1440
-  # set GTDB-Tk database path if needed
-  db:  # GTDB-Tk database path (temporary borrowed from engel lab)
+  db:  # GTDB-Tk database path: the release 232 reference package (gtdbtk_r232_data.tar.gz, unpacked)
 
 # DATA VARIABLES AND COLORS FOR ITOL VISUALIZATIONS
 DATA_VARIABLES:
