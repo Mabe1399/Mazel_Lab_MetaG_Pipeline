@@ -1,0 +1,7 @@
+# Test run outputs (see README.md)
+_run/
+
+# Full source assemblies for make_test_contigs.py: hundreds of MB, never committed.
+# Only the subsets it writes (contigs/*_subset_*) are tracked.
+contigs/*
+!contigs/*_subset_*
