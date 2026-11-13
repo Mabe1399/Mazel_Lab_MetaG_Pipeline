@@ -64,12 +64,58 @@ FastQC + MultiQC sanity check on them before proceeding straight to assembly.
   # or: pip install snakemake-executor-plugin-slurm
   ```
 - Reference databases and files (adapters, host genomes, Kraken2, CheckM2, GTDB-Tk), downloaded or built
-  separately — see [Reference data](#reference-data) for which steps need which.
+  separately — see [Prepare reference data](#3-prepare-reference-data) for which steps need which.
 - Access to a SLURM cluster is recommended for real datasets — assembly, binning, and GTDB-Tk classification
   are memory- and time-intensive (see [Resource needs](#resource-needs)). A `profile/slurm/` Snakemake
-  profile is included; see [Run it](#3-run-it).
+  profile is included; see [Run it](#6-run-it).
 
-## Reference data
+### Resource needs
+
+Defaults in `config/config.yaml`, per job — adjust to your data and cluster:
+
+| Step | Config block | Memory | Time limit | Runs |
+|---|---|---|---|---|
+| Host indexing (if built) | `host_indexing` | 50 GB | 4 h | once |
+| Kraken2 | `kraken2_run` | 200 GB (≥ database size) | 3 h | per sample |
+| metaSPAdes assembly | `Metaspade_assembly` | 400 GB | 72 h | per sample |
+| MaxBin2 / SemiBin2 | `MaxBin2`, `SemiBin2` | 30–45 GB | 48 h | per sample |
+| CheckM2 | `CheckM` | 128 GB | 4 h | per sample |
+| GTDB-Tk | `GTDB_Tk` | 160 GB | 24 h | once |
+
+Assembly dominates: memory scales with read depth and community complexity. `02_Results/benchmark_summary.tsv`
+records each rule's real peak memory and run time, so use a first run to tune these values.
+
+## Getting started
+
+### 1. Install
+
+```bash
+git clone https://github.com/Mabe1399/Mazel_Lab_MetaG_Pipeline.git
+cd Mazel_Lab_MetaG_Pipeline
+```
+
+Snakemake reads its own dependencies (conda envs listed per rule) lazily on first run via `--use-conda`, so
+there's no separate environment-installation step beyond having conda/mamba and Snakemake available.
+
+### 2. Try it on the test data
+
+`test_data/` holds a tiny synthetic 2-sample dataset (already cleaned reads, so `QC: false`) with a
+ready-made config whose paths are relative to `workflow/`. It's the quickest way to check an install or a
+change — see `test_data/README.md`.
+
+```bash
+mkdir -p test_data/_run/{output,scratch,logs,benchmarks}
+cd workflow
+snakemake -n --configfile ../test_data/config.test.yaml      # dry run
+```
+
+For a dry run, `GTDB_Tk.db` in that config must point at any existing folder. A real run also needs your
+`CheckM.db` and `GTDB_Tk.db`, and `alternative_binning: true` (SemiBin2 needs 5+ samples). The same dry run
+runs on GitHub for every push to `dev`/`main` (`.github/workflows/validate-dag.yml`).
+
+There are no unit tests — the pipeline is validated by these dry runs, in CI and before real runs.
+
+### 3. Prepare reference data
 
 Set these paths in `config/config.yaml` before the first run. Before any job starts, a real run checks that
 each one the enabled steps need exists, and stops with a `Pipeline startup failed` list otherwise (a dry
@@ -125,17 +171,7 @@ Glomus_ID   Host_species
   (`01_PP_DASTool_bin_1.fa`), `_bin` for standalone MetaBAT2 (`01_PP_bin.1.fa`).
 - `host_colors` maps each `col_host` value to a colour.
 
-## Getting started
-
-```bash
-git clone https://github.com/Mabe1399/Mazel_Lab_MetaG_Pipeline.git
-cd Mazel_Lab_MetaG_Pipeline
-```
-
-Snakemake reads its own dependencies (conda envs listed per rule) lazily on first run via `--use-conda`, so
-there's no separate environment-installation step beyond having conda/mamba and Snakemake available.
-
-### 1. Configure your project
+### 4. Configure your project
 
 Copy or edit `config/config.yaml` — it holds every path and parameter the pipeline needs:
 
@@ -185,7 +221,7 @@ kraken2_db:
   refseq: []
 ```
 
-**Reference data paths** are described in [Reference data](#reference-data). In the dry run, a
+**Reference data paths** are described in [Prepare reference data](#3-prepare-reference-data). In the dry run, a
 `build_Kraken2_db` or `host_indexing` job means the pipeline didn't find that database at the configured
 path — if you already have it, the path is wrong.
 
@@ -193,7 +229,7 @@ Every tool's thread count, memory, and runtime allocation is also set in `config
 (`Trimmomatic:`, `MetaBat2:`, `GTDB_Tk:`, etc.) — adjust these to match your cluster's resources and your
 dataset's size.
 
-### 2. Dry run
+### 5. Dry run
 
 Always validate the DAG before spending compute on a real run — Snakemake must be invoked from `workflow/`:
 
@@ -202,7 +238,7 @@ cd workflow
 snakemake -n --configfile ../config/config.yaml
 ```
 
-### 3. Run it
+### 6. Run it
 
 **Locally** (small test datasets):
 
@@ -225,6 +261,8 @@ Requires `snakemake-executor-plugin-slurm` installed (see [Requirements](#requir
 `executor: slurm` in the profile is unrecognized and even `-n` fails. `profile/slurm/config.yaml` also needs
 your SLURM account and conda-environment prefix filled in before first use — it ships with placeholder
 values (`slurm_account`, `slurm_extra` mail address, `conda-prefix`).
+
+## Resuming and running part of the pipeline
 
 **Resuming after a failure or interruption:**
 
@@ -257,56 +295,6 @@ With `final_report: true`, add `run_kraken2` to the list to also run the per-sam
 (it otherwise runs later, for the final report). Run the same command without `--until` to continue from
 there.
 
-## Try it on the test data
-
-`test_data/` holds a tiny synthetic 2-sample dataset (already cleaned reads, so `QC: false`) with a
-ready-made config whose paths are relative to `workflow/`. It's the quickest way to check an install or a
-change — see `test_data/README.md`.
-
-```bash
-mkdir -p test_data/_run/{output,scratch,logs,benchmarks}
-cd workflow
-snakemake -n --configfile ../test_data/config.test.yaml      # dry run
-```
-
-For a dry run, `GTDB_Tk.db` in that config must point at any existing folder. A real run also needs your
-`CheckM.db` and `GTDB_Tk.db`, and `alternative_binning: true` (SemiBin2 needs 5+ samples). The same dry run
-runs on GitHub for every push to `dev`/`main` (`.github/workflows/validate-dag.yml`).
-
-## Resource needs
-
-Defaults in `config/config.yaml`, per job — adjust to your data and cluster:
-
-| Step | Config block | Memory | Time limit | Runs |
-|---|---|---|---|---|
-| Host indexing (if built) | `host_indexing` | 50 GB | 4 h | once |
-| Kraken2 | `kraken2_run` | 200 GB (≥ database size) | 3 h | per sample |
-| metaSPAdes assembly | `Metaspade_assembly` | 400 GB | 72 h | per sample |
-| MaxBin2 / SemiBin2 | `MaxBin2`, `SemiBin2` | 30–45 GB | 48 h | per sample |
-| CheckM2 | `CheckM` | 128 GB | 4 h | per sample |
-| GTDB-Tk | `GTDB_Tk` | 160 GB | 24 h | once |
-
-Assembly dominates: memory scales with read depth and community complexity. `02_Results/benchmark_summary.tsv`
-records each rule's real peak memory and run time, so use a first run to tune these values.
-
-## Troubleshooting
-
-Errors raised before any job is submitted are almost always a config problem. Common ones:
-
-| Message | Cause | Fix |
-|---|---|---|
-| `Pipeline config incomplete — these paths are blank` | A path an enabled step needs is empty | Fill it in — see [Reference data](#reference-data) |
-| `Pipeline startup failed:` followed by `[config] ... not found` lines | Those paths don't exist (real runs only; checked before any job starts) | Fix each listed path |
-| `build_Kraken2_db` or `host_indexing` in the dry run when you have the database | `kraken2_db.DB_dir` / `host_filtering.index_path` doesn't point at it | Fix the path (`index_path` is a prefix, not a folder) |
-| `TypeError: sequence item 0: expected str instance, NoneType found` (in `build_Kraken2_db` or `host_indexing`) | v2.0 only: a lone `-` under `kraken2_db.refseq` or `host_indexing.Host_refs` | Update the pipeline, or write `refseq: []` / `Host_refs: []` |
-| `config['exclude_samples'] contains invalid entries: [None]` | A lone `-` under `exclude_samples` | `exclude_samples: []` |
-| `AmbiguousRuleException` for `run_kraken2` / `kraken2_Taxonomic_Profiling`, or `Missing input files for rule all` (`Combined_kraken2_report.tsv`) | v2.0 only: `taxonomic_profiling: true` was broken | Update the pipeline |
-| `no R1 file found for sample ...` | Input file names don't match `concatenate_lanes` | See *Input file names* under [Configure your project](#1-configure-your-project) |
-| `SemiBin2_binning` fails | Fewer than 5 non-excluded samples | Set `alternative_binning: true` |
-
-For an error inside a job, read that job's log under `log_dir` (the path is printed in the error); every
-rule writes its tool output there.
-
 ## Outputs
 
 Everything is written under `working_dir`, split into two top-level trees:
@@ -329,6 +317,24 @@ Everything is written under `working_dir`, split into two top-level trees:
   - `tool_versions.tsv` — exact installed version of every external tool used in the run (always generated,
     independent of `final_report`), queried from each tool's own conda env at run time
 
+## Troubleshooting
+
+Errors raised before any job is submitted are almost always a config problem. Common ones:
+
+| Message | Cause | Fix |
+|---|---|---|
+| `Pipeline config incomplete — these paths are blank` | A path an enabled step needs is empty | Fill it in — see [Prepare reference data](#3-prepare-reference-data) |
+| `Pipeline startup failed:` followed by `[config] ... not found` lines | Those paths don't exist (real runs only; checked before any job starts) | Fix each listed path |
+| `build_Kraken2_db` or `host_indexing` in the dry run when you have the database | `kraken2_db.DB_dir` / `host_filtering.index_path` doesn't point at it | Fix the path (`index_path` is a prefix, not a folder) |
+| `TypeError: sequence item 0: expected str instance, NoneType found` (in `build_Kraken2_db` or `host_indexing`) | v2.0 only: a lone `-` under `kraken2_db.refseq` or `host_indexing.Host_refs` | Update the pipeline, or write `refseq: []` / `Host_refs: []` |
+| `config['exclude_samples'] contains invalid entries: [None]` | A lone `-` under `exclude_samples` | `exclude_samples: []` |
+| `AmbiguousRuleException` for `run_kraken2` / `kraken2_Taxonomic_Profiling`, or `Missing input files for rule all` (`Combined_kraken2_report.tsv`) | v2.0 only: `taxonomic_profiling: true` was broken | Update the pipeline |
+| `no R1 file found for sample ...` | Input file names don't match `concatenate_lanes` | See *Input file names* under [Configure your project](#4-configure-your-project) |
+| `SemiBin2_binning` fails | Fewer than 5 non-excluded samples | Set `alternative_binning: true` |
+
+For an error inside a job, read that job's log under `log_dir` (the path is printed in the error); every
+rule writes its tool output there.
+
 ## Repository layout
 
 ```
@@ -344,8 +350,3 @@ workflow/
   scripts/                # Python helpers invoked by rules (parsing, aggregation)
   envs/                   # 4 grouped conda environments (Core, Binning, SemiBin2, Reporting)
 ```
-
-## Notes
-
-- There are no unit tests — the pipeline is validated by dry runs (`snakemake -n`) on the
-  [test data](#try-it-on-the-test-data), in CI and before real runs.

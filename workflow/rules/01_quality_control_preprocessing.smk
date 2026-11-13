@@ -281,7 +281,7 @@ rule After_multiqc:
 # optional here — run_kraken2 feeds the final report's Kraken section — and a blank
 # path can't be a rule input/output. The Snakefile stops early if it's blank but needed.
 # build_Kraken2_db: onstart requires DB_dir to exist whenever Kraken2 is needed, so
-# build a database beforehand (see README, 'Reference data').
+# build a database beforehand (see README, 'Prepare reference data').
 if KRAKEN2_DB:
     rule build_Kraken2_db:
         output:

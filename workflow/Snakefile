@@ -75,7 +75,7 @@ if _blank:
     sys.exit(
         "Pipeline config incomplete — these paths are blank in the config:\n"
         + "\n".join(f"  {b}" for b in _blank)
-        + "\nSee the 'Reference data' section of the README."
+        + "\nSee 'Prepare reference data' in the README."
     )
 
 include: "rules/00_common.smk"
