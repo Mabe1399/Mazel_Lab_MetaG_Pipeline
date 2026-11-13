@@ -51,8 +51,13 @@ sample_pattern: '^(Pl\d+_[A-Z]\d+)_.*$'
 #   exclude_samples : explicit names (useful for one-off edge cases)
 #   exclude_pattern : regex matched against sample name; "" = disabled
 #                     e.g. '^.*(blank|BLANK|ctrl|NEG).*$'
-exclude_samples:
-- 
+#
+# List format: one "- name" per line, no quotes needed. Keep "[]" to exclude nothing —
+# a lone "-" with nothing after it is read as a blank entry and stops the run.
+#   exclude_samples:
+#   - E_PP
+#   - E_M
+exclude_samples: []
 
 exclude_pattern: ""   # set to a regex to exclude samples by name pattern
 
@@ -62,12 +67,18 @@ exclude_pattern: ""   # set to a regex to exclude samples by name pattern
 # Set to true or false to include/exclude specific steps
 steps:
   QC: true                          # Include QC & preprocessing step When QC: false, run FastQC+MultiQC on pre-cleaned reads to verify quality
-  concatenate_lanes: true          # true = cat multi-lane files; false = symlink single pre-concatenated files
-  taxonomic_profiling: false        # Include Kraken2 taxonomic profiling
-  alternative_binning: false        # false = MetaBAT2+MaxBin2+SemiBin2+DAS_Tool; true = standalone MetaBAT2 (03b)
+  concatenate_lanes: true          # true = cat multi-lane files, named {sample}_L*_R1* / {sample}_L*_R2*
+                                   # false = symlink one file per read, named {sample}_R1* / {sample}_R2*
+                                   #   (the lane/read tag must follow the sample name directly, e.g.
+                                   #   01_PP_L001_R1_001.fastq.gz or 01_PP_R1.fastq.gz, not 01_PP_S12_R1_001.fastq.gz)
+  taxonomic_profiling: false        # Kraken2 profiling of the cleaned reads (needs kraken2_db.DB_dir)
+  alternative_binning: false        # false = MetaBAT2+MaxBin2+SemiBin2+DAS_Tool (needs >=5 non-excluded samples, for SemiBin2);
+                                    # true = standalone MetaBAT2 (03b)
   MAGs_Reporting_step: true         # Include MAGs reporting & annotation (04)
   iTOL_visualisation: true          # With MAGs_Reporting_step: GTDB-Tk tree of all HQ MAGs + iTOL annotation files (needs DATA_VARIABLES.metadata_path for host strips)
   final_report: false               # Generate a pipeline-wide MultiQC final report
+                                    # (with QC: true this also runs Kraken2 on every sample's trimmed reads, for
+                                    #  the report's Kraken section, so it needs kraken2_db.DB_dir too)
 
 #########################################################
 # SOFTWARE PARAMETERS
@@ -95,7 +106,10 @@ multiqc:
 
 # Trimmomatic parameters
 trimmomatic:
-  trimmomatic_adapters: # path to stored adaptaters
+  # Adapter FASTA for ILLUMINACLIP, matching your library prep: NexteraPE-PE.fa (Nextera/
+  # Illumina DNA Prep) or TruSeq3-PE-2.fa (TruSeq). These ship with Trimmomatic, and are in
+  # its GitHub repo (usadellab/Trimmomatic, adapters/). Required when QC: true.
+  trimmomatic_adapters:
   leading: 28
   trailing: 28
   minlen: 60
@@ -107,16 +121,24 @@ trimmomatic:
 # Kraken2 parameters (host filtering + taxonomic classification rules)
 # Database parameters
 kraken2_db:
-  DB_dir: #path to Kraken Database
-  # Ressources allocation for building the database
+  # Path to an existing Kraken2 database folder (the one holding hash.k2d, opts.k2d, taxo.k2d).
+  # Needed when taxonomic_profiling: true, or QC: true with final_report: true; may stay blank
+  # otherwise. A real run checks the folder exists before starting any job. (A dry run lists a
+  # build_Kraken2_db job instead when it's missing — that also means the path is wrong.)
+  DB_dir:
+  # build_Kraken2_db (bacteria + human + refseq below): kept for reference; the start-up check
+  # above means the pipeline won't build a missing database, so build/download one beforehand.
   threads: 32
   memory_mb: 500000
   runtime_min: 2880
   disk_mb: 1000000
-# Formatted Reference genomes for host filtering in Kraken2
-  refseq:
-  - # Path to Kraken formatted Host reference genome fasta files
-    
+  # Extra host genomes for build_Kraken2_db (ignored when DB_dir already exists).
+  # FASTA files whose headers carry the NCBI taxid in Kraken format, e.g.
+  #   >NC_000067.7|kraken:taxid|10090 Mus musculus chromosome 1
+  # One "- path" per line, no quotes needed, no spaces in paths. Keep "[]" for none.
+  #   refseq:
+  #   - /path/to/hosts/mouse_kraken.fna
+  refseq: []
 
 # Run parameters
 kraken2_run:
@@ -131,9 +153,15 @@ host_indexing:
   threads: 20
   memory_mb: 50000
   runtime_min: 240
-  # Reference genomes for host filtering in Bowtie2
-  Host_refs:
-  - # Path to Host reference genome for Host decontam (can be same as in Kraken2)
+  # Host genomes the Bowtie2 index is BUILT from (ignored when the index in
+  # host_filtering.index_path already exists). Plain, uncompressed FASTA (.fa/.fna), no special
+  # headers. One "- path" per line; quotes optional, but no spaces in paths. Keep "[]" if the
+  # index already exists. Indexing several mammal genomes (~15 Gbp) can take longer than
+  # runtime_min above — raise it when building a new index.
+  #   Host_refs:
+  #   - /path/to/hosts/Mus_musculus/GCF_000001635.27_GRCm39_genomic.fna
+  #   - /path/to/hosts/Homo_sapiens/GCF_000001405.40_GRCh38.p14_genomic.fna
+  Host_refs: []
 
 # Host filtering parameters
 host_filtering:
@@ -141,8 +169,11 @@ host_filtering:
   threads: 20
   memory_mb: 30000
   runtime_min: 600
-  # Index for host filtering
-  index_path: # path to the index directory 
+  # Index PREFIX, not a folder: for index files /path/to/bowtie2_index/my_index.1.bt2l,
+  # .2.bt2l, .3.bt2l, .4.bt2l, .rev.1.bt2l, .rev.2.bt2l, write /path/to/bowtie2_index/my_index
+  # The pipeline expects large-index (.bt2l) files; if they are missing, host_indexing
+  # builds them from Host_refs above.
+  index_path:
 
 ########## 02 Assembly.smk parameters ########
 
@@ -223,9 +254,10 @@ CheckM:
   threads: 4
   memory_mb: 128000
   runtime_min: 240
-  # CheckM2 DIAMOND database path — download once with:
-  # checkm2 database --download --path <dir>
-  db: # Set CheckM2 database path
+  # CheckM2 DIAMOND database — the .dmnd FILE, not its folder. Download once with
+  #   checkm2 database --download --path <dir>
+  # then set db: <dir>/CheckM2_database/uniref100.KO.1.dmnd   (always required)
+  db:
 
 # Bin quality filtering parameters
 Bin_filtering:
@@ -242,11 +274,17 @@ GTDB_Tk:
   db:  # GTDB-Tk database path: the release 232 reference package (gtdbtk_r232_data.tar.gz, unpacked)
 
 # DATA VARIABLES AND COLORS FOR ITOL VISUALIZATIONS
+# Only used with iTOL_visualisation: true. Leave metadata_path blank to build the tree only
+# (no host annotation strips).
 DATA_VARIABLES:
-  metadata_path:  # Path to metadata file
-  col_host: "Host_species" # Column name in metadata file for host species
-  split_criteria: "_DASTool_" # Character to split user_genome to extract Sample_ID
-  col_sample_id: "Glomus_ID" # Column name in metadata file for sample IDs
+  # Tab-separated file (or .xlsx), one row per sample, with at least the two columns below.
+  metadata_path:
+  col_host: "Host_species"     # column holding each sample's host (values = host_colors keys)
+  col_sample_id: "Glomus_ID"   # column holding sample names exactly as the pipeline detects them
+  # Text after the sample name in MAG names; the part before it must match col_sample_id.
+  # "_DASTool_" for alternative_binning: false ({sample}_DASTool_bin_1.fa),
+  # "_bin" for alternative_binning: true ({sample}_bin.1.fa).
+  split_criteria: "_DASTool_"
 
 # Colors for host species in iTOL visualizations (can be modified for any species in dataset)
 host_colors:

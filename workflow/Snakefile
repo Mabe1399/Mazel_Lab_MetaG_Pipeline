@@ -52,6 +52,32 @@ HIGHQC_BINS_DIR = (
     else f"{OUTPUT_DIR}/02_Results/03_Binning/HighQC_Bins/"
 )
 
+## Kraken2 runs for taxonomic profiling (02b, on the cleaned reads) and, when QC runs,
+## for the final report's per-sample Kraken section (run_kraken2 in 01, on the trimmed
+## reads). Only then is kraken2_db.DB_dir needed; module 01 defines its Kraken2 rules
+## only when it is set.
+KRAKEN2_DB = (config.get("kraken2_db") or {}).get("DB_dir") or ""
+KRAKEN2_NEEDED = bool(
+    config["steps"].get("taxonomic_profiling")
+    or (config["steps"].get("QC", True) and config["steps"].get("final_report"))
+)
+
+## Paths used directly as rule inputs/outputs: a blank value would otherwise surface as
+## a cryptic "Input and output files have to be specified as strings" while parsing.
+_blank = []
+if KRAKEN2_NEEDED and not KRAKEN2_DB:
+    _blank.append("kraken2_db.DB_dir (needed by taxonomic_profiling, or by QC + final_report)")
+if config["steps"].get("QC", True) and not (config.get("host_filtering") or {}).get("index_path"):
+    _blank.append("host_filtering.index_path (needed by QC: true)")
+if config["steps"].get("MAGs_Reporting_step") and not (config.get("GTDB_Tk") or {}).get("db"):
+    _blank.append("GTDB_Tk.db (needed by MAGs_Reporting_step: true)")
+if _blank:
+    sys.exit(
+        "Pipeline config incomplete — these paths are blank in the config:\n"
+        + "\n".join(f"  {b}" for b in _blank)
+        + "\nSee the 'Reference data' section of the README."
+    )
+
 include: "rules/00_common.smk"
 include: "rules/00_tool_versions.smk"
 
@@ -81,16 +107,52 @@ onstart:
         if not os.path.isdir(config[key]):
             errors.append(f"[config] '{key}' not found: {config[key]}")
 
-    # Database paths — only check when the step that uses them is enabled
-    if config["steps"].get("QC", True) or config["steps"].get("taxonomic_profiling"):
-        db_dir = config.get("kraken2_db", {}).get("DB_dir", "")
-        if db_dir and not os.path.isdir(db_dir):
-            errors.append(f"[config] kraken2_db.DB_dir not found: {db_dir}")
+    # Reference data — only check what the enabled steps use. Checked here (real runs
+    # only, before any job starts) so a wrong path fails now, not days into the run.
+    if KRAKEN2_NEEDED and not os.path.isdir(KRAKEN2_DB):
+        errors.append(f"[config] kraken2_db.DB_dir not found: {KRAKEN2_DB}")
+
+    if config["steps"].get("QC", True):
+        adapters = config.get("trimmomatic", {}).get("trimmomatic_adapters") or ""
+        if not os.path.isfile(adapters):
+            errors.append(
+                f"[config] trimmomatic.trimmomatic_adapters not found: {adapters or '(blank)'} "
+                "— e.g. NexteraPE-PE.fa or TruSeq3-PE.fa (shipped with Trimmomatic)"
+            )
+
+        # Bowtie2 host index: reused if all files exist, otherwise built from Host_refs
+        index_prefix = config["host_filtering"]["index_path"]
+        index_files = [f"{index_prefix}.{ext}" for ext in
+                       ("1.bt2l", "2.bt2l", "3.bt2l", "4.bt2l", "rev.1.bt2l", "rev.2.bt2l")]
+        if not all(os.path.isfile(f) for f in index_files):
+            refs = [r for r in (config.get("host_indexing", {}).get("Host_refs") or []) if r]
+            if not refs:
+                errors.append(
+                    f"[config] Bowtie2 host index not found at host_filtering.index_path "
+                    f"({index_prefix}.*.bt2l) and host_indexing.Host_refs is empty, so it "
+                    "can't be built. index_path is the index prefix, not its folder."
+                )
+            for r in refs:
+                if not os.path.isfile(r):
+                    errors.append(f"[config] host_indexing.Host_refs file not found: {r}")
+
+    # CheckM2 runs in both binning branches. --database_path takes the .dmnd file itself.
+    checkm_db = config.get("CheckM", {}).get("db") or ""
+    if not os.path.isfile(checkm_db):
+        hint = ""
+        if checkm_db and os.path.isdir(checkm_db):
+            hint = (" — this is a folder; point at the .dmnd file inside it, "
+                    "e.g. CheckM2_database/uniref100.KO.1.dmnd")
+        errors.append(f"[config] CheckM.db not found: {checkm_db or '(blank)'}{hint}")
 
     if config["steps"].get("MAGs_Reporting_step"):
-        gtdb_db = config.get("GTDB_Tk", {}).get("db", "")
-        if gtdb_db and not os.path.isdir(gtdb_db):
+        gtdb_db = config["GTDB_Tk"]["db"]
+        if not os.path.isdir(gtdb_db):
             errors.append(f"[config] GTDB_Tk.db not found: {gtdb_db}")
+
+        metadata = (config.get("DATA_VARIABLES") or {}).get("metadata_path")
+        if config["steps"].get("iTOL_visualisation", True) and metadata and not os.path.isfile(metadata):
+            errors.append(f"[config] DATA_VARIABLES.metadata_path not found: {metadata}")
 
     if not SAMPLES:
         errors.append(f"[samples] No samples detected in input_dir: {config['input_dir']}")
@@ -127,7 +189,7 @@ onstart:
 
 # Reference outputs (uncomment and add to get_final_outputs() to target a specific stage):
 #   QC After:         f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/QC_After"
-#   Kraken2 combined: f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv"
+#   Kraken2 combined: f"{OUTPUT_DIR}/02_Results/02b_Taxonomic_Profiling/Kraken2/Combined_kraken2_tax_profiling_report.tsv"
 #   Assembly multiqc: f"{OUTPUT_DIR}/02_Results/02_Assembly/Metaquast_QC/multiqc_report.html"
 #   MAG info:         f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/MAG_Representative_info_parsed.tsv"
 #   iTOL tree:        f"{OUTPUT_DIR}/02_Results/04_MAGs_Reporting_Annotating/iTOL_visualisation/gtdbtk.bac120.iTOL.MAGs.tree"
@@ -147,6 +209,13 @@ def get_final_outputs():
         outputs.append(f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/QC_Check")
 
     if config["steps"].get("taxonomic_profiling"):
+        outputs.append(
+            f"{OUTPUT_DIR}/02_Results/02b_Taxonomic_Profiling/Kraken2/Combined_kraken2_tax_profiling_report.tsv"
+        )
+
+    # Kraken2 on the trimmed (pre-host-filtering) reads, run for the final report when
+    # QC runs; keep its combined table as a result too.
+    if config["steps"].get("QC", True) and config["steps"].get("final_report"):
         outputs.append(
             f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv"
         )

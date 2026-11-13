@@ -87,6 +87,15 @@ def get_multiqc_inputs(wildcards):
             f"{OUTPUT_DIR}/02_Results/02b_Taxonomic_Profiling/Kraken2/"
             f"Combined_kraken2_tax_profiling_report.tsv"
         )
+        # Without QC there's no run_kraken2 (trimmed reads), so the report's Kraken
+        # section comes from 02b's per-sample reports instead — anchored for the same
+        # temp() reason as kraken2_reports above. With QC, 02b's reports are left out:
+        # same sample names in both sets would overwrite each other in that section.
+        if not config["steps"].get("QC", True):
+            inputs["kraken2_tax_reports"] = expand(
+                f"{OUTPUT_DIR}/01_Analysis/02b_Taxonomic_Profiling/Kraken2/{{sample}}_kraken2.report",
+                sample=SAMPLES,
+            )
 
     return inputs
 
@@ -98,6 +107,8 @@ def _build_multiqc_dirs():
         dirs.append(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/")
     else:
         dirs.append(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/QC_Check/")
+        if config["steps"].get("taxonomic_profiling"):
+            dirs.append(f"{OUTPUT_DIR}/01_Analysis/02b_Taxonomic_Profiling/Kraken2/")
     dirs += [
         f"{OUTPUT_DIR}/01_Analysis/02_Assembly/Metaquast_QC/",
         f"{OUTPUT_DIR}/01_Analysis/03_Binning/CheckM_QC/",

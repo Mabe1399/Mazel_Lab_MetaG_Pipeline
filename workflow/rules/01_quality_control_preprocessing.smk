@@ -19,7 +19,7 @@
 # 02: Before QC (FastQC + MultiQC)
 # 03: Trimming (Trimmomatic)
 # 04: After QC (FastQC + MultiQC)
-# 05: Taxonomic profiling (Kraken2)
+# 05: Kraken2 on the trimmed reads (for the final report; needs kraken2_db.DB_dir)
 # 06: Host filtering (Bowtie2)
 
 ##################################################
@@ -277,85 +277,91 @@ rule After_multiqc:
 
 ###################### 05 TAX PROFILING ######################################
 
-rule build_Kraken2_db:
-    output:
-        db = directory(config["kraken2_db"]["DB_dir"])
-    params:
-        host_list=lambda wildcards: _join_paths(config["kraken2_db"].get("refseq"))
-    threads: config["kraken2_db"]["threads"]
-    conda:
-        "../envs/Core.yaml"
-    resources:
-        mem_mb = config["kraken2_db"]["memory_mb"],
-        runtime = config["kraken2_db"]["runtime_min"],
-        disk_mb = config["kraken2_db"]["disk_mb"],
-        cpus_per_task = config["kraken2_db"]["threads"]
-    log:
-        f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/kraken2_db.log"
-    benchmark:
-        f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/kraken2_db.tsv"
-    shell:
-        """
-        exec > {log} 2>&1
-        mkdir -p $TMPDIR/kraken2_db
-        kraken2-build --download-taxonomy --db $TMPDIR/kraken2_db
-        kraken2-build --download-library bacteria --db $TMPDIR/kraken2_db
-        kraken2-build --download-library human --db $TMPDIR/kraken2_db
-        echo "Adding files: {params.host_list}"
-        for f in {params.host_list}; do
-            echo "File: $f"
-            kraken2-build --add-to-library "$f" --db $TMPDIR/kraken2_db
-        done
-        kraken2-build --build --threads {threads} --db $TMPDIR/kraken2_db
+# Defined only when kraken2_db.DB_dir is set (KRAKEN2_DB, Snakefile): Kraken2 is
+# optional here — run_kraken2 feeds the final report's Kraken section — and a blank
+# path can't be a rule input/output. The Snakefile stops early if it's blank but needed.
+# build_Kraken2_db: onstart requires DB_dir to exist whenever Kraken2 is needed, so
+# build a database beforehand (see README, 'Reference data').
+if KRAKEN2_DB:
+    rule build_Kraken2_db:
+        output:
+            db = directory(KRAKEN2_DB)
+        params:
+            host_list=lambda wildcards: _join_paths(config["kraken2_db"].get("refseq"))
+        threads: config["kraken2_db"]["threads"]
+        conda:
+            "../envs/Core.yaml"
+        resources:
+            mem_mb = config["kraken2_db"]["memory_mb"],
+            runtime = config["kraken2_db"]["runtime_min"],
+            disk_mb = config["kraken2_db"]["disk_mb"],
+            cpus_per_task = config["kraken2_db"]["threads"]
+        log:
+            f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/kraken2_db.log"
+        benchmark:
+            f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/kraken2_db.tsv"
+        shell:
+            """
+            exec > {log} 2>&1
+            mkdir -p $TMPDIR/kraken2_db
+            kraken2-build --download-taxonomy --db $TMPDIR/kraken2_db
+            kraken2-build --download-library bacteria --db $TMPDIR/kraken2_db
+            kraken2-build --download-library human --db $TMPDIR/kraken2_db
+            echo "Adding files: {params.host_list}"
+            for f in {params.host_list}; do
+                echo "File: $f"
+                kraken2-build --add-to-library "$f" --db $TMPDIR/kraken2_db
+            done
+            kraken2-build --build --threads {threads} --db $TMPDIR/kraken2_db
 
-        mkdir -p {output.db}
-        cp -r $TMPDIR/kraken2_db/* {output.db}/
-        """
-
-
-rule run_kraken2:
-    input:
-        R1=f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_paired.fastq.gz",
-        R2=f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_paired.fastq.gz",
-        db= config["kraken2_db"]["DB_dir"]
-    output:
-        tab=temp(f"{SCRATCH_DIR}/Kraken2/{{sample}}_kraken2.out"),
-        rep=temp(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2.report")
-    conda:
-        "../envs/Core.yaml"
-    threads: config["kraken2_run"]["threads"]
-    log:
-        f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2_run.log"
-    benchmark:
-        f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2_run.tsv"
-    resources:
-        mem_mb = config["kraken2_run"]["memory_mb"],
-        runtime = config["kraken2_run"]["runtime_min"],
-        cpus_per_task = config["kraken2_run"]["threads"]
-    shell:
-        "kraken2 --use-names --threads {threads} \
-        --db {input.db} \
-        --report {output.rep} --gzip-compressed \
-        --report-zero-counts \
-        --paired {input.R1} {input.R2} \
-        --output {output.tab} > {log} 2>&1"
+            mkdir -p {output.db}
+            cp -r $TMPDIR/kraken2_db/* {output.db}/
+            """
 
 
-rule parse_kraken2_report:
-    input:
-        expand(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2.report", sample=SAMPLES)
-    output:
-        f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv"
-    localrule: True
-    conda:
-        "../envs/Core.yaml"
-    threads: 1
-    log:
-        f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/Combined_kraken2_parsing.log"
-    benchmark:
-        f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/Combined_kraken2_parsing.tsv"
-    shell:
-        "python3 scripts/Combine_kraken_reports.py -o {output} -i {input} > {log} 2>&1"
+    rule run_kraken2:
+        input:
+            R1=f"{SCRATCH_DIR}/Trimmed/{{sample}}_R1_paired.fastq.gz",
+            R2=f"{SCRATCH_DIR}/Trimmed/{{sample}}_R2_paired.fastq.gz",
+            db= KRAKEN2_DB
+        output:
+            tab=temp(f"{SCRATCH_DIR}/Kraken2/{{sample}}_kraken2.out"),
+            rep=temp(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2.report")
+        conda:
+            "../envs/Core.yaml"
+        threads: config["kraken2_run"]["threads"]
+        log:
+            f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2_run.log"
+        benchmark:
+            f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2_run.tsv"
+        resources:
+            mem_mb = config["kraken2_run"]["memory_mb"],
+            runtime = config["kraken2_run"]["runtime_min"],
+            cpus_per_task = config["kraken2_run"]["threads"]
+        shell:
+            "kraken2 --use-names --threads {threads} \
+            --db {input.db} \
+            --report {output.rep} --gzip-compressed \
+            --report-zero-counts \
+            --paired {input.R1} {input.R2} \
+            --output {output.tab} > {log} 2>&1"
+
+
+    rule parse_kraken2_report:
+        input:
+            expand(f"{OUTPUT_DIR}/01_Analysis/01_QC_Preprocessing/Kraken2/{{sample}}_kraken2.report", sample=SAMPLES)
+        output:
+            f"{OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv"
+        localrule: True
+        conda:
+            "../envs/Core.yaml"
+        threads: 1
+        log:
+            f"{LOG_DIR}/01_QC_Preprocessing/Kraken2/Combined_kraken2_parsing.log"
+        benchmark:
+            f"{BENCH_DIR}/01_QC_Preprocessing/Kraken2/Combined_kraken2_parsing.tsv"
+        shell:
+            "python3 scripts/Combine_kraken_reports.py -o {output} -i {input} > {log} 2>&1"
 
 
 ########################## 06 HOST FILTERING ########################################
