@@ -37,6 +37,17 @@ _HOST_INDEX_FILES  = expand(
 _CONCATENATE_LANES = config["steps"].get("concatenate_lanes", True)
 
 
+def _join_paths(paths):
+    """Space-join a config list of file paths, skipping blank entries.
+
+    The template's `refseq:` / `Host_refs:` lists ship with one empty `-` item,
+    which YAML loads as [None]. Snakemake evaluates params even for jobs whose
+    outputs already exist, so a bare " ".join() crashes DAG building whether or
+    not the DB/index actually needs to be built.
+    """
+    return " ".join(str(p) for p in (paths or []) if p)
+
+
 def _find_raw_read(wildcards, read):
     """Return the single pre-concatenated FASTQ for a sample/read direction.
 
@@ -270,7 +281,7 @@ rule build_Kraken2_db:
     output:
         db = directory(config["kraken2_db"]["DB_dir"])
     params:
-        host_list=lambda wildcards: " ".join(config["kraken2_db"]["refseq"])
+        host_list=lambda wildcards: _join_paths(config["kraken2_db"].get("refseq"))
     threads: config["kraken2_db"]["threads"]
     conda:
         "../envs/Core.yaml"
@@ -356,7 +367,7 @@ rule host_indexing:
         "../envs/Core.yaml"
     threads: config["host_indexing"]["threads"]
     params:
-        refs_seq    = lambda wildcards: " ".join(config["host_indexing"]["Host_refs"]),
+        refs_seq    = lambda wildcards: _join_paths(config["host_indexing"].get("Host_refs")),
         index_dir   = _HOST_INDEX_DIR,
         index_prefix = _HOST_INDEX_PREFIX,
     log:
