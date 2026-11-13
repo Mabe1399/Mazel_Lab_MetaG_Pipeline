@@ -301,7 +301,7 @@ onsuccess:
 onerror:
     logger.error(
         f"Pipeline failed. Check logs in: {LOG_DIR}\n"
-        f"Resume with: snakemake --rerun-incomplete --profile slurm --use-conda"
+        f"Resume with: snakemake --rerun-incomplete --use-conda --profile ../profile/slurm"
     )
 
 ##################################################

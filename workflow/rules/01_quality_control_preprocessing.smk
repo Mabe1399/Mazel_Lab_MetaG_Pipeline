@@ -375,7 +375,9 @@ rule host_indexing:
     params:
         refs_seq    = lambda wildcards: _join_paths(config["host_indexing"].get("Host_refs")),
         index_dir   = _HOST_INDEX_DIR,
-        index_prefix = _HOST_INDEX_PREFIX,
+        # Build under the configured file name: the declared outputs are
+        # {index_path}.*.bt2l, so a fixed name here would never match them.
+        index_name  = os.path.basename(_HOST_INDEX_PREFIX),
     log:
         f"{LOG_DIR}/01_QC_Preprocessing/HF/host_indexing.log"
     benchmark:
@@ -389,10 +391,13 @@ rule host_indexing:
         cat {params.refs_seq} > $TMPDIR/hosts_combined.fa
 
         mkdir -p $TMPDIR/hosts_index
-        bowtie2-build --threads {threads} $TMPDIR/hosts_combined.fa $TMPDIR/hosts_index/host_index > {log} 2>&1
+        # --large-index: always write .bt2l, which the outputs declare; without it
+        # bowtie2-build writes .bt2 when the combined genomes are under ~4 Gbp.
+        bowtie2-build --large-index --threads {threads} $TMPDIR/hosts_combined.fa \
+            $TMPDIR/hosts_index/{params.index_name} > {log} 2>&1
 
         mkdir -p {params.index_dir}
-        cp -r $TMPDIR/hosts_index/host_index.* {params.index_dir}/
+        cp $TMPDIR/hosts_index/{params.index_name}.* {params.index_dir}/
         """
 
 rule host_filtering:
