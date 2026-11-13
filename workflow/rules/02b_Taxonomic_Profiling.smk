@@ -9,14 +9,18 @@
 # Assumptions:
 #   - Cleaned FASTQ files are in CLEAN_DATA_DIR (OUTPUT_DIR/00_Data/02_Clean_Data when QC runs,
 #     DATA_DIR otherwise)
-#   - A Kraken2 database is available at config[kraken2_db][DB_dir]
+#   - A Kraken2 database is available at config[kraken2_db][DB_dir] (KRAKEN2_DB)
 #
 # MODULE INTERFACE
-#   INPUT:       Cleaned FASTQ reads from 01_quality_control_preprocessing.smk
-#   OUTPUT:      {OUTPUT_DIR}/02_Results/01_QC_Preprocessing/Kraken2/Combined_kraken2_report.tsv
-#   REQUIRES:    QC: true (01_quality_control_preprocessing.smk)
+#   INPUT:       Cleaned FASTQ reads in CLEAN_DATA_DIR (from module 01, or pre-cleaned input)
+#   OUTPUT:      {OUTPUT_DIR}/02_Results/02b_Taxonomic_Profiling/Kraken2/Combined_kraken2_tax_profiling_report.tsv
+#   REQUIRES:    — (works with QC: true or false)
 #   STEPS KEY:   taxonomic_profiling: true
-#   USES:        SAMPLES (all samples including blanks)
+#   USES:        SAMPLES (all samples including blanks), KRAKEN2_DB
+#   NOTE:        Distinct from module 01's run_kraken2, which classifies the *trimmed*
+#                (pre-host-filtering) reads for the final report; this one profiles the
+#                cleaned reads. Its scratch .out path must stay different from run_kraken2's,
+#                or both rules claim the same file (AmbiguousRuleException with QC: true).
 
 # Steps included:
 # 01: Taxonomic profiling (Kraken2)
@@ -32,9 +36,9 @@ rule kraken2_Taxonomic_Profiling:
     input:
         R1=f"{CLEAN_DATA_DIR}/{{sample}}_R1_cleaned.fastq.gz",
         R2=f"{CLEAN_DATA_DIR}/{{sample}}_R2_cleaned.fastq.gz",
-        db= config["kraken2_db"]["DB_dir"]
+        db= KRAKEN2_DB
     output:
-        tab=temp(f"{SCRATCH_DIR}/Kraken2/{{sample}}_kraken2.out"),
+        tab=temp(f"{SCRATCH_DIR}/Kraken2_Taxonomic_Profiling/{{sample}}_kraken2.out"),
         rep=temp(f"{OUTPUT_DIR}/01_Analysis/02b_Taxonomic_Profiling/Kraken2/{{sample}}_kraken2.report")
     conda:
         "../envs/Core.yaml"

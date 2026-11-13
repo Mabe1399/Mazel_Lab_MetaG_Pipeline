@@ -24,6 +24,11 @@ jobs:
       fail-fast: false
       matrix:
         alternative_binning: [false, true]
+        taxonomic_profiling: [false]
+        include:
+          # 02b on pre-cleaned reads (needs a Kraken2 db path; a dummy dir is enough)
+          - alternative_binning: true
+            taxonomic_profiling: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,7 +47,7 @@ jobs:
 
       - name: Prepare run scaffolding (gitignored outputs + dummy GTDB-Tk db)
         run: |
-          mkdir -p test_data/_run/{output,scratch,logs,benchmarks,dummy_gtdb_db}
+          mkdir -p test_data/_run/{output,scratch,logs,benchmarks,dummy_gtdb_db,dummy_kraken2_db}
           # NOTE: `--config 'steps={"alternative_binning": ...}'` looks like the
           # obvious way to override this, but Snakemake parses nested --config
           # dict values with yaml.BaseLoader, which does NOT coerce "true"/"false"
@@ -53,11 +58,14 @@ jobs:
           cat > test_data/_run/override.yaml <<EOF
           steps:
             alternative_binning: ${{ matrix.alternative_binning }}
+            taxonomic_profiling: ${{ matrix.taxonomic_profiling }}
           GTDB_Tk:
             db: "../test_data/_run/dummy_gtdb_db"
+          kraken2_db:
+            DB_dir: "../test_data/_run/dummy_kraken2_db"
           EOF
 
-      - name: Dry-run DAG (alternative_binning=${{ matrix.alternative_binning }})
+      - name: Dry-run DAG (alternative_binning=${{ matrix.alternative_binning }}, taxonomic_profiling=${{ matrix.taxonomic_profiling }})
         shell: bash -el {0}
         run: |
           cd workflow
